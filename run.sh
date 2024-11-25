@@ -78,14 +78,19 @@ delete_rule() {
 }
 
 
-
 flush_rules() {
     read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
     if [[ "$confirm" == "y" ]]; then
+       
+        SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+
+        sudo iptables -A INPUT -p tcp --dport $SSH_PORT -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+        sudo iptables -A OUTPUT -p tcp --sport $SSH_PORT -m conntrack --ctstate ESTABLISHED -j ACCEPT
+        
         sudo iptables -F
-        echo "${GREEN}All rules flushed!${ENDCOLOR}"
+        echo "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
     else
-        echo "${RED} Operation cancelled. ${ENDCOLOR}"
+        echo "${RED}Operation cancelled.${ENDCOLOR}"
     fi
 }
 
