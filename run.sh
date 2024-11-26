@@ -1,10 +1,5 @@
 #!/bin/bash 
 
-# Script: Manage iptables rules
-# Author: Your Name
-# Date: $(date +"%Y-%m-%d")
-
-
 ORANGE=$(echo -ne '\e[38;5;214m')
 BLUE=$(echo -ne '\e[94m')
 RED=$(echo -ne '\e[31m')
@@ -14,17 +9,15 @@ YELLOW=$(echo -ne '\033[0;33m')
 
 check_user_root()
 {
-	if [ "$EUID" -ne 0 ];then 
-		echo -e "${RED}This script must be run as root. Please switch to the root user and try again.${ENDCOLOR}"
-		exit 1
-	fi
+    if [ "$EUID" -ne 0 ]; then 
+        echo -e "${RED}This script must be run as root. Please switch to the root user and try again.${ENDCOLOR}"
+        exit 1
+    fi
 }
-
-
 
 show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}         iptables Manager          ${ENDCOLOR}"
+    echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
     echo -e "${BLUE}===================================${ENDCOLOR}"
     echo -e "${BLUE}1. Display current rules${ENDCOLOR}"
     echo -e "${BLUE}2. Add a new rule${ENDCOLOR}"
@@ -32,18 +25,16 @@ show_menu(){
     echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
     echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
     echo -e "${BLUE}6. DDOS_plus${ENDCOLOR}"
-    echo -e "${BLUE}7. reset_iptable${ENDCOLOR} ${RED} (Risky)  ${ENDCOLOR}"
+    echo -e "${BLUE}7. reset_nftables${ENDCOLOR} ${RED} (Risky)  ${ENDCOLOR}"
     echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
-    echo -e "${RED} 9. Exit${ENDCOLOR}"
+    echo -e "${RED}9. Exit${ENDCOLOR}"
     echo -e "${BLUE}===================================${ENDCOLOR}"
-    }
-
-
+}
 
 Display_rules(){
     check_user_root
-    echo "Current Iptables Rules: "
-    sudo iptables -L -n -v --line-numbers
+    echo "Current nftables Rules: "
+    sudo nft list ruleset
 }
 
 tables_add(){
@@ -54,9 +45,7 @@ tables_add(){
     sudo nft add table ip mangle
 }
 
-
 setup_nftables() {
-    
     sudo nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
     sudo nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
     sudo nft add chain ip nat output { type nat hook output priority 100 \; }
@@ -69,53 +58,48 @@ setup_nftables() {
     echo -e "${GREEN}All chains successfully created!${ENDCOLOR}"
 }
 
-
 add_rule(){
     check_user_root
-    read -p "${BLUE} Entrt Chain  (INPUT / OUTPUT /  FORWARD)  ${ENDCOLOR}" chain
-    read -p "${BLUE} Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
-    read -p "${BLUE} Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " source
-    read -p "${BLUE} Enter destination IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " destination
-    read -p "${BLUE} Enter destination port (or leave empty for none): ${ENDCOLOR} " port
-    read -p "${BLUE} Enter action (ACCEPT/DROP): ${ENDCOLOR} " action
+    read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
+    read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
+    read -p "${BLUE}Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " source
+    read -p "${BLUE}Enter destination IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " destination
+    read -p "${BLUE}Enter destination port (or leave empty for none): ${ENDCOLOR} " port
+    read -p "${BLUE}Enter action (ACCEPT/DROP): ${ENDCOLOR} " action
 
     if [ -z "$port" ]; then
-        sudo nft add rule ip filter $chain ip saddr $source daddr $destination  $protocol $action 
-   else
-        sudo nft add rule ip filter $cahin ip saddr $source daddr $destination $protocol dport $port $action
+        sudo nft add rule ip filter $chain ip saddr $source daddr $destination $protocol $action 
+    else
+        sudo nft add rule ip filter $chain ip saddr $source daddr $destination $protocol dport $port $action
     fi
-    echo "{GREEN} Rule added successfully!${ENDCOLOR}"
-
+    echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
 }
-
 
 delete_rule() {
-  check_user_root
-  display_rules
-  read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
-  read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
-  sudo nft delete rule ip filter "$chain" handle $rule_number
-  echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
+    check_user_root
+    Display_rules
+    read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
+    read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
+    sudo nft delete rule ip filter "$chain" handle $rule_number
+    echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
-
 
 flush_rules() {
-  check_user_root
-  read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
-  if [[ "$confirm" == "y" ]]; then
-    SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-    
-    sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-    sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-    
-    sudo nft flush ruleset
-    
-    echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
-  else
-    echo -e "${RED}Operation cancelled.${ENDCOLOR}"
-  fi
+    check_user_root
+    read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
+    if [[ "$confirm" == "y" ]]; then
+        SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+        
+        sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+        sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+        
+        sudo nft flush ruleset
+        
+        echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
+    else
+        echo -e "${RED}Operation cancelled.${ENDCOLOR}"
+    fi
 }
-
 
 save_nftables_rules() {
     check_user_root
@@ -131,36 +115,30 @@ save_nftables_rules() {
     echo -e "${GREEN}sudo nft -f $RULES_FILE${ENDCOLOR}"
 }
 
-
 load_rules() {
     check_user_root
-    read -p "${BLUE} Enter file name to load rules from: ${ENDCOLOR}" filename
+    read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
     if [[ -f $filename ]]; then
-        sudo iptables-restore < $filename
-        echo " ${GREEN} Rules loaded from $filename ${ENDCOLOR}"
+        sudo nft -f $filename
+        echo -e "${GREEN}Rules loaded from $filename${ENDCOLOR}"
     else
-        echo "${RED}File not found!${ENDCOLOR}"
+        echo -e "${RED}File not found!${ENDCOLOR}"
     fi
 }
-
 
 while true; do
     show_menu
     read -p "${ORANGE}Choose an option: ${ENDCOLOR}" choice
     case $choice in
-        1) display_rules ;;
+        1) Display_rules ;;
         2) add_rule ;;
         3) delete_rule ;;
         4) flush_rules ;;
-        5) save_rules ;;
-        6) DDos_plus ;;
-        7) reset_iptable;;
+        5) save_nftables_rules ;;
+        6) DDos_plus ;;  
+        7) reset_nftables ;;  
         8) load_rules ;;
         9) echo "Exiting..."; break ;;
         *) echo "${RED}Invalid option! Please try again. ${ENDCOLOR}" ;;
     esac
 done
-
-
-
-
