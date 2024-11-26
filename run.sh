@@ -31,24 +31,47 @@ show_menu(){
     echo -e "${BLUE}3. Delete a rule${ENDCOLOR}"
     echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
     echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
-    echo -e "${BLUE}6. Load rules from file${ENDCOLOR}"
-    echo -e "${RED}7. Exit${ENDCOLOR}"
+    echo -e "${BLUE}6. DDOS_plus${ENDCOLOR}"
+    echo -e "${BLUE}7. reset_iptable${ENDCOLOR} ${RED} (Risky)  ${ENDCOLOR}"
+    echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
+    echo -e "${RED} 9. Exit${ENDCOLOR}"
     echo -e "${BLUE}===================================${ENDCOLOR}"
     }
 
 
 
 Display_rules(){
+    check_user_root
     echo "Current Iptables Rules: "
     sudo iptables -L -n -v --line-numbers
 }
 
+tables_add(){
+    check_user_root
+    sudo nft add table ip filter
+    sudo nft add table ip nat
+    sudo nft add table ip raw
+    sudo nft add table ip mangle
+}
 
 
+setup_nftables() {
+    
+    sudo nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
+    sudo nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
+    sudo nft add chain ip nat output { type nat hook output priority 100 \; }
+    sudo nft add chain ip raw prerouting { type filter hook prerouting priority -300 \; }
+    sudo nft add chain ip raw output { type filter hook output priority -300 \; }
+    sudo nft add chain ip mangle prerouting { type filter hook prerouting priority -150 \; }
+    sudo nft add chain ip mangle postrouting { type filter hook postrouting priority -150 \; }
+    sudo nft add chain ip mangle output { type route hook output priority -150 \; }
+
+    echo -e "${GREEN}All chains successfully created!${ENDCOLOR}"
+}
 
 
-add rule(){
-
+add_rule(){
+    check_user_root
     read -p "${BLUE} Entrt Chain  (INPUT / OUTPUT /  FORWARD)  ${ENDCOLOR}" chain
     read -p "${BLUE} Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
     read -p "${BLUE} Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " source
@@ -57,54 +80,60 @@ add rule(){
     read -p "${BLUE} Enter action (ACCEPT/DROP): ${ENDCOLOR} " action
 
     if [ -z "$port" ]; then
-        sudo iptables -A $chain -p $protocol -s $source -d $destination -j $action
-    else
-        sudo iptables -A $chain -p $protocol -s $source -d $destination --dport $port -j $action
+        sudo nft add rule ip filter $chain ip saddr $source daddr $destination  $protocol $action 
+   else
+        sudo nft add rule ip filter $cahin ip saddr $source daddr $destination $protocol dport $port $action
     fi
     echo "{GREEN} Rule added successfully!${ENDCOLOR}"
 
 }
 
 
-
-
-
 delete_rule() {
-    display_rules
-    read -p "${BLUE}Enter chain (INPUT/OUTPUT/FORWARD):${ENDCOLOR} " chain
-    read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
-    sudo iptables -D $chain $rule_number
-    echo "{$GREEN}Rule deleted successfully!${ENDCOLOR}"
+  check_user_root
+  display_rules
+  read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
+  read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
+  sudo nft delete rule ip filter "$chain" handle $rule_number
+  echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
 
 
 flush_rules() {
-    read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
-    if [[ "$confirm" == "y" ]]; then
-       
-        SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-
-        sudo iptables -A INPUT -p tcp --dport $SSH_PORT -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
-        sudo iptables -A OUTPUT -p tcp --sport $SSH_PORT -m conntrack --ctstate ESTABLISHED -j ACCEPT
-        
-        sudo iptables -F
-        echo "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
-    else
-        echo "${RED}Operation cancelled.${ENDCOLOR}"
-    fi
+  check_user_root
+  read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
+  if [[ "$confirm" == "y" ]]; then
+    SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+    
+    sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+    sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+    
+    sudo nft flush ruleset
+    
+    echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
+  else
+    echo -e "${RED}Operation cancelled.${ENDCOLOR}"
+  fi
 }
 
 
-save_rules() {
-    read -p "Enter file name to save rules: ${BLUE} " filename
-    sudo iptables-save > $filename
-    echo "${ORANGE}Rules saved to $filename ${ENDCOLOR}"
+save_nftables_rules() {
+    check_user_root
+    local RULES_FILE="/etc/nftables.conf"
+    echo -e "${BLUE}Rules will be saved to: $RULES_FILE${ENDCOLOR}"
+    sudo nft list ruleset > $RULES_FILE
+    echo -e "${ORANGE}Rules saved to $RULES_FILE${ENDCOLOR}"
+    echo -e "${BLUE}Enabling nftables service for automatic rule loading after reboot...${ENDCOLOR}"
+    sudo systemctl enable nftables
+    echo -e "${BLUE}Checking nftables service status...${ENDCOLOR}"
+    sudo systemctl status nftables --no-pager
+    echo -e "${BLUE}To manually load the rules from the saved file, use the following command:${ENDCOLOR}"
+    echo -e "${GREEN}sudo nft -f $RULES_FILE${ENDCOLOR}"
 }
-
-
 
 
 load_rules() {
+    check_user_root
     read -p "${BLUE} Enter file name to load rules from: ${ENDCOLOR}" filename
     if [[ -f $filename ]]; then
         sudo iptables-restore < $filename
@@ -124,8 +153,10 @@ while true; do
         3) delete_rule ;;
         4) flush_rules ;;
         5) save_rules ;;
-        6) load_rules ;;
-        7) echo "Exiting..."; break ;;
+        6) DDos_plus ;;
+        7) reset_iptable;;
+        8) load_rules ;;
+        9) echo "Exiting..."; break ;;
         *) echo "${RED}Invalid option! Please try again. ${ENDCOLOR}" ;;
     esac
 done
