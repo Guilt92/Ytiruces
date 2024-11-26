@@ -1,1 +1,1 @@
-# IptablesWizard
+# ytiruces (nftables)
