@@ -16,6 +16,14 @@ check_user_root(){
     fi
 }
 
+pkg_install(){
+    pkg=nftables
+    status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
+    if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
+        apt install $pkg -y
+    fi
+}
+
 display_rules(){
     check_user_root
     echo "Current nftables Rules: "
