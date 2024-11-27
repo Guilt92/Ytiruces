@@ -15,6 +15,26 @@ check_user_root()
     fi
 }
 
+
+service_check(){
+    if systemctl is-active --quiet nftables; then
+        echo -e "${GREEN}Service nftables is active.${ENDCOLOR}"
+    else
+        echo -e "${RED}Service nftables is not active.${ENDCOLOR} ${BLUE}Attempting to start the service...${ENDCOLOR}"
+        
+        if systemctl start nftables; then
+            echo -e "${GREEN}Service started successfully.${ENDCOLOR}"
+            systemctl enable nftables && echo -e "${GREEN}Service enabled to start on boot.${ENDCOLOR}" || \
+            echo -e "${ORANGE}Failed to enable service. Please enable manually.${ENDCOLOR}"
+        else
+            echo -e "${RED}Failed to start service.${ENDCOLOR}"
+            echo -e "${ORANGE}Check the logs with: journalctl -xeu nftables${ENDCOLOR}"
+        fi
+    fi
+}
+
+
+
 show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
     echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
@@ -92,7 +112,11 @@ flush_rules() {
         
         sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
         sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-        
+        sudo nft add rule inet filter input tcp dport 80 ct state new,established accept  
+        sudo nft add rule inet filter input tcp dport 443 ct state new,established accept
+        sudo nft add rule inet filter input udp dport 53 ct state new,established accept  
+        sudo nft add rule inet filter input tcp dport 53 ct state new,established accept  
+
         sudo nft flush ruleset
         
         echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
