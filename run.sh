@@ -7,7 +7,6 @@ GREEN=$(echo -ne '\e[32m')
 ENDCOLOR=$(echo -ne '\e[0m')
 YELLOW=$(echo -ne '\033[0;33m')
 
-# Function to display the main menu
 show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
     echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
@@ -24,7 +23,6 @@ show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
 }
 
-# Function to check if the user is root
 check_user_root(){
     if [ "$EUID" -ne 0 ]; then 
         echo -e "${RED}This script must be run as root. Please switch to the root user and try again.${ENDCOLOR}"
@@ -32,14 +30,12 @@ check_user_root(){
     fi
 }
 
-# Function to display the current rules
 Display_rules(){
     check_user_root
     echo "Current nftables Rules: "
     sudo nft list ruleset
 }
 
-# Function to add a new table
 tables_add(){
     check_user_root
     sudo nft add table ip filter
@@ -48,7 +44,6 @@ tables_add(){
     sudo nft add table ip mangle
 }
 
-# Function to setup nftables
 setup_nftables() {
     sudo nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
     sudo nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
@@ -62,7 +57,6 @@ setup_nftables() {
     echo -e "${GREEN}All chains successfully created!${ENDCOLOR}"
 }
 
-# Function to add a new rule
 add_rule(){
     check_user_root
     read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
@@ -80,7 +74,6 @@ add_rule(){
     echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
 }
 
-# Function to delete a rule
 delete_rule() {
     check_user_root
     Display_rules
@@ -90,7 +83,6 @@ delete_rule() {
     echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
 
-# Function to flush all rules
 flush_rules() {
     check_user_root
     read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
@@ -112,7 +104,6 @@ flush_rules() {
     fi
 }
 
-# Function to save rules to file
 save_nftables_rules() {
     check_user_root
     local RULES_FILE="/etc/nftables.conf"
@@ -127,7 +118,6 @@ save_nftables_rules() {
     echo -e "${GREEN}sudo nft -f $RULES_FILE${ENDCOLOR}"
 }
 
-# Function to load rules from file
 load_rules() {
     check_user_root
     read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
