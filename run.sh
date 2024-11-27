@@ -67,13 +67,31 @@ add_rule(){
     echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
 }
 
-add_port_user(){
 
+add_port_user(){
     check_user_root
-    read -p "${BLUE}Enter port: ${ENDCOLOR}" port
+    read -p "${BLUE}Enter prot: ${ENDCOLOR}" prot
     sudo nft add rule inet filter input tcp dport $port ct state new,established accept
     sudo nft add rule inet filter output tcp sport $port ct state established accept
     
+    while true; do
+        read -p "${BLUE}Enter port: ${ENDCOLOR}" port
+
+        if [[ $port =~ ^[0-9]+$ ]] && [ $port -ge 1 ] && [ $port -le 65535 ]; then
+            sudo nft add rule inet filter input tcp dport $port ct state new,established accept
+            sudo nft add rule inet filter output tcp sport $port ct state established accept
+            
+            sudo nft add rule inet filter input udp dport $port ct state new,established accept
+            sudo nft add rule inet filter output udp sport $port ct state established accept
+            
+            echo "${GREEN}Port $port has been successfully added for TCP and UDP.${ENDCOLOR}"
+            break
+        else
+            echo "${RED}Invalid port number. Please enter a number between 1 and 65535.${ENDCOLOR}"
+        fi
+    done
+ }
+
 }
 
 delete_rule() {
