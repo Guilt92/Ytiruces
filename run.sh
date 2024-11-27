@@ -32,7 +32,6 @@ check_user_root(){
     fi
 }
 
-
 Display_rules(){
     check_user_root
     echo "Current nftables Rules: "
@@ -75,6 +74,15 @@ add_rule(){
         sudo nft add rule ip filter $chain ip saddr $source daddr $destination $protocol dport $port $action
     fi
     echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
+}
+
+add_port(){
+
+    check_user_root
+    read -p "${BLUE}Enter prot: ${ENDCOLOR}" prot
+    sudo nft add rule inet filter input tcp dport $port ct state new,established accept
+    sudo nft add rule inet filter output tcp sport $port ct state established accept
+    
 }
 
 delete_rule() {
