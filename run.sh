@@ -7,6 +7,7 @@ GREEN=$(echo -ne '\e[32m')
 ENDCOLOR=$(echo -ne '\e[0m')
 YELLOW=$(echo -ne '\033[0;33m')
 
+# Function to display the main menu
 show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
     echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
@@ -23,50 +24,22 @@ show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
 }
 
-check_user_root()
-{
+# Function to check if the user is root
+check_user_root(){
     if [ "$EUID" -ne 0 ]; then 
         echo -e "${RED}This script must be run as root. Please switch to the root user and try again.${ENDCOLOR}"
         exit 1
     fi
 }
 
-
-service_check(){
-    if systemctl is-active --quiet nftables; then
-        echo -e "${GREEN}Service nftables is active.${ENDCOLOR}"
-    else
-        echo -e "${RED}Service nftables is not active.${ENDCOLOR} ${BLUE}Attempting to start the service...${ENDCOLOR}"
-        
-        if systemctl start nftables; then
-            echo -e "${GREEN}Service started successfully.${ENDCOLOR}"
-            systemctl enable nftables && echo -e "${GREEN}Service enabled to start on boot.${ENDCOLOR}" || \
-            echo -e "${ORANGE}Failed to enable service. Please enable manually.${ENDCOLOR}"
-        else
-            echo -e "${RED}Failed to start service.${ENDCOLOR}"
-            echo -e "${ORANGE}Check the logs with: journalctl -xeu nftables${ENDCOLOR}"
-        fi
-    fi
-}
-
-
-
-pkg_install(){
-
-    pkg=nftables
-    status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
-    if [ ! $? = 0 ] || [ ! "$status" = installed ]; then
-        apt install $pkg -y
-    fi
-}
-
-
+# Function to display the current rules
 Display_rules(){
     check_user_root
     echo "Current nftables Rules: "
     sudo nft list ruleset
 }
 
+# Function to add a new table
 tables_add(){
     check_user_root
     sudo nft add table ip filter
@@ -75,6 +48,7 @@ tables_add(){
     sudo nft add table ip mangle
 }
 
+# Function to setup nftables
 setup_nftables() {
     sudo nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
     sudo nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
@@ -88,6 +62,7 @@ setup_nftables() {
     echo -e "${GREEN}All chains successfully created!${ENDCOLOR}"
 }
 
+# Function to add a new rule
 add_rule(){
     check_user_root
     read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
@@ -105,6 +80,7 @@ add_rule(){
     echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
 }
 
+# Function to delete a rule
 delete_rule() {
     check_user_root
     Display_rules
@@ -114,6 +90,7 @@ delete_rule() {
     echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
 
+# Function to flush all rules
 flush_rules() {
     check_user_root
     read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
@@ -135,6 +112,7 @@ flush_rules() {
     fi
 }
 
+# Function to save rules to file
 save_nftables_rules() {
     check_user_root
     local RULES_FILE="/etc/nftables.conf"
@@ -149,6 +127,7 @@ save_nftables_rules() {
     echo -e "${GREEN}sudo nft -f $RULES_FILE${ENDCOLOR}"
 }
 
+# Function to load rules from file
 load_rules() {
     check_user_root
     read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
@@ -160,53 +139,52 @@ load_rules() {
     fi
 }
 
- while true
- do
- PS3='Please enter your choice: '
- options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "DDos_plus" "reset_nftables" "load_rules" "Exit"  )i
-
- select opt in "${options[@]}"
- do
-     case $opt in
-         "display_rules")
-             
-             break
-             ;;
-         "add_rule")
-            
-             break
-             ;;
-         "delete_rule")
-          
-             break
-             ;;
-         "flush_rules")
-          
-             break
-             ;;
-        "save_nftables_rules")
-          
-             break
-             ;;
-        "DDos_plus")
-          
-             break
-             ;;
-        "reset_nftables")
-          
-             break
-             ;;
-        "load_rules")
-          
-             break
-             ;;
-             
-         "Quit")
-             echo  -e "{$RED}Exiting... ${ENDCOLOR}"
-             exit
-             ;;
-         *) echo invalid option;;
-     esac
- done
- done
-
+while true
+do
+    PS3='Please enter your choice: '
+    options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "DDos_plus" "reset_nftables" "load_rules" "Exit")
+    select opt in "${options[@]}"
+    do
+        case $opt in
+            "display_rules")
+                Display_rules
+                break
+                ;;
+            "add_rule")
+                add_rule
+                break
+                ;;
+            "delete_rule")
+                delete_rule
+                break
+                ;;
+            "flush_rules")
+                flush_rules
+                break
+                ;;
+            "save_nftables_rules")
+                save_nftables_rules
+                break
+                ;;
+            "DDos_plus")
+                
+                break
+                ;;
+            "reset_nftables")
+                
+                break
+                ;;
+            "load_rules")
+                load_rules
+                break
+                ;;
+            "Exit")
+                echo -e "${RED}Exiting...${ENDCOLOR}"
+                exit
+                ;;
+            *)
+                echo "Invalid option, please try again."
+                ;;
+        esac
+    done
+done
