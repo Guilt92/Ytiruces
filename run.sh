@@ -92,7 +92,6 @@ add_port_user(){
     done
  }
 
-}
 
 delete_rule() {
     check_user_root
@@ -147,6 +146,11 @@ load_rules() {
     fi
 }
 
+
+ddos(){
+
+
+}
 
 while true
 do
