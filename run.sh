@@ -9,22 +9,6 @@ YELLOW=$(echo -ne '\033[0;33m')
 
 check_user_root
 
-show_menu(){
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}1. Display current rules${ENDCOLOR}"
-    echo -e "${BLUE}2. Add a new rule${ENDCOLOR}"
-    echo -e "${BLUE}3. Delete a rule${ENDCOLOR}"
-    echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
-    echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
-    echo -e "${BLUE}6. DDOS_plus${ENDCOLOR}"
-    echo -e "${BLUE}7. reset_nftables${ENDCOLOR} ${RED} (Risky)  ${ENDCOLOR}"
-    echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
-    echo -e "${RED}9. Exit${ENDCOLOR}"
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-}
-
 check_user_root(){
     if [ "$EUID" -ne 0 ]; then 
         echo -e "${RED}This script must be run as root. Please switch to the root user and try again.${ENDCOLOR}"
@@ -101,10 +85,8 @@ flush_rules() {
         
         sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
         sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-        sudo nft add rule inet filter input tcp dport 80 ct state new,established accept  
-        sudo nft add rule inet filter input tcp dport 443 ct state new,established accept
-        sudo nft add rule inet filter input udp dport 53 ct state new,established accept  
-        sudo nft add rule inet filter input tcp dport 53 ct state new,established accept  
+        sudo nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
+        sudo nft add rule inet filter input udp dport {53} ct state new,established accept
 
         sudo nft flush ruleset
         
@@ -139,42 +121,58 @@ load_rules() {
     fi
 }
 
+
 while true
 do
-    PS3='Please enter your choice: '
+    clear
+    echo -e "${BLUE}===================================${ENDCOLOR}"
+    echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
+    echo -e "${BLUE}===================================${ENDCOLOR}"
+    echo -e "${BLUE}1. Display current rules${ENDCOLOR}"
+    echo -e "${BLUE}2. Add a new rule${ENDCOLOR}"
+    echo -e "${BLUE}3. Delete a rule${ENDCOLOR}"
+    echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
+    echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
+    echo -e "${BLUE}6. DDOS_plus (coming soon)${ENDCOLOR}"
+    echo -e "${BLUE}7. Reset nftables (coming soon)${ENDCOLOR}"
+    echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
+    echo -e "${RED}9. Exit${ENDCOLOR}"
+    echo -e "${BLUE}===================================${ENDCOLOR}"
+    
+    PS3="Please enter your choice: "
     options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "DDos_plus" "reset_nftables" "load_rules" "Exit")
-    select opt in "${options[@]}"
-    do
+    
+    select opt in "${options[@]}"; do
         case $opt in
-            "display_rules")
-                Display_rules
+            "Display_Rules")
+                display_rules
                 break
                 ;;
-            "add_rule")
+            "Add_Rule")
                 add_rule
                 break
                 ;;
-            "delete_rule")
+            "Delete_Rule")
                 delete_rule
                 break
                 ;;
-            "flush_rules")
+            "Flush_Rules")
                 flush_rules
                 break
                 ;;
-            "save_nftables_rules")
+            "Save_Nftables_Rules")
                 save_nftables_rules
                 break
                 ;;
-            "DDos_plus")
-                
+            "DDOS")
+
                 break
                 ;;
-            "reset_nftables")
-                
+            "Reset_Nftables")
+
                 break
                 ;;
-            "load_rules")
+            "Load_Rules")
                 load_rules
                 break
                 ;;
@@ -183,8 +181,11 @@ do
                 exit
                 ;;
             *)
-                echo "Invalid option, please try again."
+                echo -e "${RED}Invalid option, please try again.${ENDCOLOR}"
                 ;;
         esac
     done
+
+    echo -e "${BLUE}Press Enter to return to the main menu...${ENDCOLOR}"
+    read -r
 done
