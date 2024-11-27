@@ -160,19 +160,53 @@ load_rules() {
     fi
 }
 
-while true; do
-    show_menu
-    read -p "${ORANGE}Choose an option: ${ENDCOLOR}" choice
-    case $choice in
-        1) Display_rules ;;
-        2) add_rule ;;
-        3) delete_rule ;;
-        4) flush_rules ;;
-        5) save_nftables_rules ;;
-        6) DDos_plus ;;  
-        7) reset_nftables ;;  
-        8) load_rules ;;
-        9) echo "Exiting..."; break ;;
-        *) echo "${RED}Invalid option! Please try again. ${ENDCOLOR}" ;;
-    esac
-done
+ while true
+ do
+ PS3='Please enter your choice: '
+ options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "DDos_plus" "reset_nftables" "load_rules" "Exit"  )i
+
+ select opt in "${options[@]}"
+ do
+     case $opt in
+         "display_rules")
+             
+             break
+             ;;
+         "add_rule")
+            
+             break
+             ;;
+         "delete_rule")
+          
+             break
+             ;;
+         "flush_rules")
+          
+             break
+             ;;
+        "save_nftables_rules")
+          
+             break
+             ;;
+        "DDos_plus")
+          
+             break
+             ;;
+        "reset_nftables")
+          
+             break
+             ;;
+        "load_rules")
+          
+             break
+             ;;
+             
+         "Quit")
+             echo  -e "{$RED}Exiting... ${ENDCOLOR}"
+             exit
+             ;;
+         *) echo invalid option;;
+     esac
+ done
+ done
+
