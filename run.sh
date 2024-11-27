@@ -76,7 +76,7 @@ add_rule(){
     echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
 }
 
-add_port(){
+add_port_user(){
 
     check_user_root
     read -p "${BLUE}Enter prot: ${ENDCOLOR}" prot
