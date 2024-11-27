@@ -7,6 +7,22 @@ GREEN=$(echo -ne '\e[32m')
 ENDCOLOR=$(echo -ne '\e[0m')
 YELLOW=$(echo -ne '\033[0;33m')
 
+show_menu(){
+    echo -e "${BLUE}===================================${ENDCOLOR}"
+    echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
+    echo -e "${BLUE}===================================${ENDCOLOR}"
+    echo -e "${BLUE}1. Display current rules${ENDCOLOR}"
+    echo -e "${BLUE}2. Add a new rule${ENDCOLOR}"
+    echo -e "${BLUE}3. Delete a rule${ENDCOLOR}"
+    echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
+    echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
+    echo -e "${BLUE}6. DDOS_plus${ENDCOLOR}"
+    echo -e "${BLUE}7. reset_nftables${ENDCOLOR} ${RED} (Risky)  ${ENDCOLOR}"
+    echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
+    echo -e "${RED}9. Exit${ENDCOLOR}"
+    echo -e "${BLUE}===================================${ENDCOLOR}"
+}
+
 check_user_root()
 {
     if [ "$EUID" -ne 0 ]; then 
@@ -44,22 +60,6 @@ pkg_install(){
     fi
 }
 
-
-show_menu(){
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}1. Display current rules${ENDCOLOR}"
-    echo -e "${BLUE}2. Add a new rule${ENDCOLOR}"
-    echo -e "${BLUE}3. Delete a rule${ENDCOLOR}"
-    echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
-    echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
-    echo -e "${BLUE}6. DDOS_plus${ENDCOLOR}"
-    echo -e "${BLUE}7. reset_nftables${ENDCOLOR} ${RED} (Risky)  ${ENDCOLOR}"
-    echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
-    echo -e "${RED}9. Exit${ENDCOLOR}"
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-}
 
 Display_rules(){
     check_user_root
