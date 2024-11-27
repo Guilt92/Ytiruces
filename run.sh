@@ -7,6 +7,8 @@ GREEN=$(echo -ne '\e[32m')
 ENDCOLOR=$(echo -ne '\e[0m')
 YELLOW=$(echo -ne '\033[0;33m')
 
+check_user_root
+
 show_menu(){
     echo -e "${BLUE}===================================${ENDCOLOR}"
     echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
@@ -29,6 +31,7 @@ check_user_root(){
         exit 1
     fi
 }
+
 
 Display_rules(){
     check_user_root
