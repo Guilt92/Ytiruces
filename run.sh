@@ -32,7 +32,7 @@ check_user_root(){
     fi
 }
 
-Display_rules(){
+display_rules(){
     check_user_root
     echo "Current nftables Rules: "
     sudo nft list ruleset
@@ -54,7 +54,6 @@ setup_nftables() {
     sudo nft add chain ip raw output { type filter hook output priority -300 \; }
     sudo nft add chain ip mangle prerouting { type filter hook prerouting priority -150 \; }
     sudo nft add chain ip mangle postrouting { type filter hook postrouting priority -150 \; }
-    sudo nft add chain ip mangle output { type route hook output priority -150 \; }
 
     echo -e "${GREEN}All chains successfully created!${ENDCOLOR}"
 }
@@ -79,7 +78,7 @@ add_rule(){
 add_port_user(){
 
     check_user_root
-    read -p "${BLUE}Enter prot: ${ENDCOLOR}" prot
+    read -p "${BLUE}Enter port: ${ENDCOLOR}" port
     sudo nft add rule inet filter input tcp dport $port ct state new,established accept
     sudo nft add rule inet filter output tcp sport $port ct state established accept
     
