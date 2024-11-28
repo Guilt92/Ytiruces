@@ -25,8 +25,8 @@ pkg_install(){
 }
 
 with_list(){
-    read -p "$(echo -e "${BLUE}Please enter your IP address: ${ENDCOLOR}")" USER_IP
-    if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+
+if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || ! { IFS='.'; for i in ${USER_IP//./ }; do [[ $i -le 255 ]]; done; }; then
     echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
     exit 1
 fi
@@ -38,6 +38,14 @@ if [ $? -ne 0 ]; then
     nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
     nft add chain inet whitelist input { type filter hook input priority 0\; }
     nft add rule inet whitelist input ip saddr @whitelist_set accept
+
+  if [[ "$confirm" == "y" ]]; then
+   SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+   sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+   sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+   sudo nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
+   sudo nft add rule inet filter input udp dport {53} ct state new,established accept
+
 fi
 
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
