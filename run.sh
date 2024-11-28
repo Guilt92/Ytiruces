@@ -24,6 +24,32 @@ pkg_install(){
     fi
 }
 
+with_list(){
+    read -p "$(echo -e "${BLUE}Please enter your IP address: ${ENDCOLOR}")" USER_IP
+    if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+    echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
+    exit 1
+fi
+
+    nft list table inet whitelist &>/dev/null
+if [ $? -ne 0 ]; then
+    echo -e "${YELLOW}Creating the whitelist table and set...${ENDCOLOR}"
+    nft add table inet whitelist
+    nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
+    nft add chain inet whitelist input { type filter hook input priority 0\; }
+    nft add rule inet whitelist input ip saddr @whitelist_set accept
+fi
+
+    echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
+    nft add element inet whitelist whitelist_set { $USER_IP }
+    echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
+    nft list ruleset > $NFTABLES_CONF
+
+    echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
+
+}
+
+
 display_rules(){
     check_user_root
     echo "Current nftables Rules: "
