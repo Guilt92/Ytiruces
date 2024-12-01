@@ -7,7 +7,6 @@ GREEN=$(echo -ne '\e[32m')
 ENDCOLOR=$(echo -ne '\e[0m')
 YELLOW=$(echo -ne '\033[0;33m')
 
-check_user_root
 
 check_user_root(){
     if [ "$EUID" -ne 0 ]; then 
@@ -15,6 +14,7 @@ check_user_root(){
         exit 1
     fi
 }
+check_user_root
 
 pkg_install(){
     pkg=nftables
@@ -104,7 +104,7 @@ add_rule(){
 
 add_port_user(){
     check_user_root
-    read -p "${BLUE}Enter prot: ${ENDCOLOR}" prot
+    read -p "${BLUE}Enter port: ${ENDCOLOR}" port
     sudo nft add rule inet filter input tcp dport $port ct state new,established accept
     sudo nft add rule inet filter output tcp sport $port ct state established accept
     
@@ -207,7 +207,7 @@ do
     echo -e "${BLUE}===================================${ENDCOLOR}"
     
     PS3="Please enter your choice: "
-    options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "DDos_plus" "reset_nftables" "load_rules" "Exit")
+    options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "ddos_plus" "reset_nftables" "load_rules" "Exit")
     
     select opt in "${options[@]}"; do
         case $opt in
