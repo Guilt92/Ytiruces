@@ -182,8 +182,11 @@ load_rules() {
 
 
 ddos(){
-
-
+    check_user_root
+    sudo nft add table ip filter
+    sudo nft add chain ip filter input { type filter hook input priority 0 \; policy accept \; }
+    sudo nft add rule ip filter input ct state new limit rate 50/second burst 100 packets drop
+    sudo nft add rule ip filter input ip saddr limit rate 50/second burst 100 packets drop
 }
 
 while true
