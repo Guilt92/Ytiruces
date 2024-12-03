@@ -16,6 +16,26 @@ check_user_root(){
 }
 check_user_root
 
+
+detect_distribution() {
+    check_user_root
+    if [ -f /etc/os-release ]; then
+        source /etc/os-release
+        if [[ "${ID}" = "ubuntu" ]]; then
+            echo "${BLUE} Ok Os. Installing ...  ${ENDCOLOR}"
+        
+        else
+            echo "${RED}   Unsupported OS. Pleas Install ubuntu :)  ${ENDCOLOR}"
+            exit 255
+        fi
+    else
+        echo "${RED}  Failed to detect OS version file /etc/os-release  ${ENDCOLOR}"
+        exit 1
+    fi
+}
+
+
+
 pkg_install(){
     pkg=nftables
     status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
