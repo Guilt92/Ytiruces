@@ -31,7 +31,9 @@ if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || ! { IFS='.'; for i in ${
     exit 1
 fi
 
-    nft list table inet whitelist &>/dev/null
+nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
+
+
 if [ $? -ne 0 ]; then
     echo -e "${YELLOW}Creating the whitelist table and set...${ENDCOLOR}"
     nft add table inet whitelist
@@ -54,7 +56,6 @@ fi
     nft list ruleset > $NFTABLES_CONF
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
-
 }
 
 
@@ -207,8 +208,8 @@ do
     echo -e "${BLUE}===================================${ENDCOLOR}"
     
     PS3="Please enter your choice: "
-    options=("display_rules" "add_rule" "delete_rule" "flush_rules" "save_nftables_rules" "ddos_plus" "reset_nftables" "load_rules" "Exit")
-    
+   options=("Display Rules" "Add Rule" "Delete Rule" "Flush Rules" "Save Rules" "DDOS Protection" "Reset Nftables" "Load Rules" "Exit")
+ 
     select opt in "${options[@]}"; do
         case $opt in
             "Display_Rules")
