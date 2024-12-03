@@ -31,6 +31,9 @@ detect_distribution() {
     exit 1
 }
 
+detect_distribution
+
+
 pkg_install(){
     pkg=nftables
     status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
@@ -40,56 +43,51 @@ pkg_install(){
 }
 
 with_list(){
+    if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || ! { IFS='.'; for i in ${USER_IP//./ }; do [[ $i -le 255 ]]; done; }; then
+        echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
+        exit 1
+    fi
 
-if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || ! { IFS='.'; for i in ${USER_IP//./ }; do [[ $i -le 255 ]]; done; }; then
-    echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
-    exit 1
-fi
+    nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
 
-nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
-
-
-if [ $? -ne 0 ]; then
-    read -p "${BLUE}Enter Ip Address Yourself: ${ENDCOLOR}" USER_IP
-    echo -e "${YELLOW}Creating the whitelist table and set...${ENDCOLOR}"
-    nft add table inet whitelist
     nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
     nft add chain inet whitelist input { type filter hook input priority 0\; }
     nft add rule inet whitelist input ip saddr @whitelist_set accept
 
-  if [[ "$confirm" == "y" ]]; then
-   SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-   sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-   sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-   sudo nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
-   sudo nft add rule inet filter input udp dport {53} ct state new,established accept
+    if [[ "$confirm" == "y" ]]; then
+        SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+        sudo nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+        sudo nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+        sudo nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
+        sudo nft add rule inet filter input udp dport {53} ct state new,established accept
+    fi
 
-fi
+    export USER_IP
+    export SSH_PORT
 
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
-    nft add element inet whitelist whitelist_set { $USER_IP }
+    sudo nft add element inet whitelist whitelist_set { $USER_IP }
+
     echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
-    nft list ruleset > $NFTABLES_CONF
+    sudo nft list ruleset > $NFTABLES_CONF
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
 
 
 display_rules(){
-    check_user_root
     echo "Current nftables Rules: "
     sudo nft list ruleset
 }
 
-tables_add(){
-    check_user_root
+tables_add_defualt(){
     sudo nft add table ip filter
     sudo nft add table ip nat
     sudo nft add table ip raw
     sudo nft add table ip mangle
 }
 
-setup_nftables() {
+wizard_nftables() {
     sudo nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
     sudo nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
     sudo nft add chain ip nat output { type nat hook output priority 100 \; }
@@ -102,7 +100,6 @@ setup_nftables() {
 }
 
 add_rule(){
-    check_user_root
     read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
     read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
     read -p "${BLUE}Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " source
@@ -120,7 +117,6 @@ add_rule(){
 
 
 add_port_user(){
-    check_user_root
     read -p "${BLUE}Enter port: ${ENDCOLOR}" port
     sudo nft add rule inet filter input tcp dport $port ct state new,established accept
     sudo nft add rule inet filter output tcp sport $port ct state established accept
@@ -145,8 +141,7 @@ add_port_user(){
 
 
 delete_rule() {
-    check_user_root
-    Display_rules
+    display_rules
     read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
     read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
     sudo nft delete rule ip filter "$chain" handle $rule_number
@@ -154,7 +149,6 @@ delete_rule() {
 }
 
 flush_rules() {
-    check_user_root
     read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
     if [[ "$confirm" == "y" ]]; then
         SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
@@ -173,7 +167,6 @@ flush_rules() {
 }
 
 save_nftables_rules() {
-    check_user_root
     local RULES_FILE="/etc/nftables.conf"
     echo -e "${BLUE}Rules will be saved to: $RULES_FILE${ENDCOLOR}"
     sudo nft list ruleset > $RULES_FILE
@@ -187,7 +180,6 @@ save_nftables_rules() {
 }
 
 load_rules() {
-    check_user_root
     read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
     if [[ -f $filename ]]; then
         sudo nft -f $filename
@@ -199,12 +191,33 @@ load_rules() {
 
 
 ddos(){
-    check_user_root
-    sudo nft add table ip filter
-    sudo nft add chain ip filter input { type filter hook input priority 0 \; policy accept \; }
-    sudo nft add rule ip filter input ct state new limit rate 50/second burst 100 packets drop
-    sudo nft add rule ip filter input ip saddr limit rate 50/second burst 100 packets drop
+
+    sudo nft add table ip raw
+    sudo nft add set ip raw banned_ips { type ipv4_addr\; flags timeout\; timeout 1h\; }
+    sudo nft add chain ip raw prerouting { type filter hook prerouting priority -300 \; }
+
+    sudo nft add rule ip raw prerouting ip saddr @banned_ips drop
+    sudo nft add rule ip raw prerouting limit rate 1000/second drop
+    sudo nft add rule ip raw prerouting udp limit rate 500/second burst 50 packets drop
+
 }
+
+
+auto_ban_ip() {
+    sudo nft add rule ip raw prerouting limit rate over 1000/second log prefix "DDOS detected: " level warning
+
+    dmesg --follow | while read -r line; do
+        if [[ "$line" =~ "DDOS detected:" ]]; then
+            ip=$(echo "$line" | grep -oE 'SRC=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | cut -d= -f2)
+            if [[ -n "$ip" && "$ip" != "$USER_IP" ]]; then
+                echo "Blocking IP: $ip"
+                sudo nft add element ip raw banned_ips { $ip }
+            fi
+        fi
+    done
+}
+
+
 
 while true
 do
@@ -227,6 +240,8 @@ do
    options=("Display Rules" "Add Rule" "Delete Rule" "Flush Rules" "Save Rules" "DDOS Protection" "Reset Nftables" "Load Rules" "Exit")
  
     select opt in "${options[@]}"; do
+    
+
         case $opt in
             "Display_Rules")
                 display_rules
