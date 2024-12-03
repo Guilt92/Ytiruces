@@ -16,25 +16,20 @@ check_user_root(){
 }
 check_user_root
 
-
 detect_distribution() {
     check_user_root
     if [ -f /etc/os-release ]; then
         source /etc/os-release
         if [[ "${ID}" = "ubuntu" ]]; then
-            echo "${BLUE} Ok Os. Installing ...  ${ENDCOLOR}"
-        
-        else
-            echo "${RED}   Unsupported OS. Pleas Install ubuntu :)  ${ENDCOLOR}"
-            exit 255
+            echo "${BLUE}Ok OS. Installing...${ENDCOLOR}"
+            return 0
         fi
-    else
-        echo "${RED}  Failed to detect OS version file /etc/os-release  ${ENDCOLOR}"
-        exit 1
+        echo "${RED}Unsupported OS. Please install Ubuntu :)${ENDCOLOR}"
+        exit 255
     fi
+    echo "${RED}Failed to detect OS version file /etc/os-release.${ENDCOLOR}"
+    exit 1
 }
-
-
 
 pkg_install(){
     pkg=nftables
@@ -55,6 +50,7 @@ nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please che
 
 
 if [ $? -ne 0 ]; then
+    read -p "${BLUE}Enter Ip Address Yourself: ${ENDCOLOR}" USER_IP
     echo -e "${YELLOW}Creating the whitelist table and set...${ENDCOLOR}"
     nft add table inet whitelist
     nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
