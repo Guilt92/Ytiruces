@@ -110,12 +110,15 @@ with_list(){
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
      nft add element inet whitelist whitelist_set { $USER_IP }
 
-    
     NFTABLES_CONF="/etc/nftables.conf"
-     touch $NFTABLES_CONF
-    echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
-     nft list ruleset > $NFTABLES_CONF
-
+    if [ -f $NFTABLES_CONF ]; then
+        echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
+        nft list ruleset > $NFTABLES_CONF
+    else 
+        echo -e "${RED} File not Found. Touch File and Saving ${ENDCOLOR}"
+        touch $NFTABLES_CONF
+        nft list ruleset > $NFTABLES_CONF
+    fi 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
 
