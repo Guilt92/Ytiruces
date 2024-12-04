@@ -86,7 +86,7 @@ pkg_install(){
     fi
 }
 
-add-with_list-ip(){
+add_with_list-ip(){
     echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
     
@@ -133,6 +133,7 @@ add-with_list-ip(){
         touch $NFTABLES_CONF
         nft list ruleset > $NFTABLES_CONF
     fi 
+    export NFTABLES_CONF
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
 
@@ -318,7 +319,7 @@ do
                 break
                 ;;
             "Add With List Ip")
-                add-with_list_ip
+                add_with_list_ip
                 sleep 1
                 service_nftables
                 break
@@ -350,8 +351,9 @@ do
                 break
                 ;;
             "DDOS Protection")
-                ddos
-                auto_ban_ip
+                echo -e " DDOS Protection Active "
+                ddos &
+                auto_ban_ip &
                 break
                 ;;
             "Add Port Number")
