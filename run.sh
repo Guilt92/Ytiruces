@@ -1,5 +1,7 @@
 #!/bin/bash 
 
+# Author:   OuTiS
+
 ORANGE=$(echo -ne '\e[38;5;214m')
 BLUE=$(echo -ne '\e[94m')
 RED=$(echo -ne '\e[31m')
