@@ -34,6 +34,48 @@ detect_distribution() {
 detect_distribution
 
 
+
+service_nftables() {
+    echo "Checking status of nftables service..."
+    
+    if systemctl is-active --quiet nftables; then
+        echo -e "\033[32mService \"nftables\" is already active and running.\033[0m"
+        echo "Restarting nftables to ensure configuration is loaded..."
+        if systemctl restart nftables; then
+            echo -e "\033[32mService \"nftables\" restarted successfully.\033[0m"
+        else
+            echo -e "\033[31mFailed to restart service \"nftables\".\033[0m"
+            return 1
+        fi
+    else
+        echo -e "\033[31mService \"nftables\" is not running. Attempting to start it...\033[0m"
+        if systemctl start nftables; then
+            echo -e "\033[32mService \"nftables\" started successfully.\033[0m"
+            if systemctl enable nftables; then
+                echo -e "\033[32mService \"nftables\" enabled to start on boot.\033[0m"
+            else
+                echo -e "\033[31mFailed to enable service \"nftables\". It might not start on boot.\033[0m"
+                return 1
+            fi
+        else
+            echo -e "\033[31mFailed to start service \"nftables\". Please check logs with: journalctl -xeu nftables\033[0m"
+            return 1
+        fi
+    fi
+
+    echo "Verifying nftables configuration..."
+    if nft list ruleset > /dev/null 2>&1; then
+        echo -e "\033[32mnftables configuration is valid.\033[0m"
+    else
+        echo -e "\033[31mError in nftables configuration.\033[0m"
+        return 1
+    fi
+
+    echo -e "\033[32mService \"nftables\" management completed successfully.\033[0m"
+    return 0
+}
+
+
 pkg_install(){
     pkg=nftables
     status="$(dpkg-query -W --showformat='${db:Status-Status}' "$pkg" 2>&1)"
