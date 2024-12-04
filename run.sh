@@ -124,7 +124,8 @@ with_list(){
 
 
 display_rules(){
-    echo "Current nftables Rules: "
+    clear 
+    echo "${GREEN}Current nftables Rules: ${ENDCOLOR}\n\n"
      nft list ruleset
 }
 
