@@ -84,11 +84,23 @@ pkg_install(){
     fi
 }
 
-with_list(){
+add-with_list-ip(){
+    echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
+    echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
+    
+    read -p "${BLUE}Enter your IP address: ${ENDCOLOR}" USER_IP
+
+
     if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || ! { IFS='.'; for i in ${USER_IP//./ }; do [[ $i -le 255 ]]; done; }; then
         echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
         exit 1
     fi
+
+    echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
+    echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
+
+
+
 
     nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
 
@@ -286,50 +298,83 @@ do
     echo -e "${BLUE}===================================${ENDCOLOR}"
     
     PS3="Please enter your choice: "
-   options=("Display Rules" "Add Rule" "Delete Rule" "Flush Rules" "Save Rules" "DDOS Protection" "Reset Nftables" "Load Rules" "Exit")
+   options=("Wizard Nftable" "Add With List Ip" "Display Rules" "Add Rule" "Delete Rule" "Flush Rules" "Save Rules" "DDOS Protection" "Add Port Number" "Load Rules" "Exit")
  
     select opt in "${options[@]}"; do
     
 
         case $opt in
-            "Display_Rules")
+            "Wizard Nftable")
+                pkg_install
+                sleep 1
+                clear 
+                tabls_add_defualt
+                sleep 1 
+                clear 
+                wizard_nftables
+                service_nftables
+                break
+                ;;
+            "Add With List Ip")
+                add-with_list_ip
+                sleep 1
+                service_nftables
+                break
+                ;;
+            "Display Rules")
                 display_rules
                 break
                 ;;
-            "Add_Rule")
+            "Add Rule")
                 add_rule
+                service_nftables
                 break
                 ;;
-            "Delete_Rule")
+            "Delete Rule")
                 delete_rule
+                service_nftables
                 break
                 ;;
-            "Flush_Rules")
+            "Flush Rules")
                 flush_rules
+                sleep 1
+                service_nftables
                 break
                 ;;
-            "Save_Nftables_Rules")
+            "Save Rules")
                 save_nftables_rules
+                sleep 1
+                service_nftables
                 break
                 ;;
-            "DDOS")
-
+            "DDOS Protection")
+                ddos
+                auto_ban_ip
                 break
                 ;;
-            "Reset_Nftables")
-
+            "Add Port Number")
+                add_port_user
+                sleep 1
+                service_nftables
                 break
                 ;;
-            "Load_Rules")
+            "Load Rules")
                 load_rules
+                sleep 1
+                service_nftables
                 break
                 ;;
             "Exit")
+                sleep 1 
                 echo -e "${RED}Exiting...${ENDCOLOR}"
+                sleep 1 
+                clear 
                 exit
                 ;;
             *)
                 echo -e "${RED}Invalid option, please try again.${ENDCOLOR}"
+                sleep .5 
+                clear 
                 ;;
         esac
     done
