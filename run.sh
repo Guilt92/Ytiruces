@@ -277,19 +277,11 @@ ddos(){
 while true
 do
     clear
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}         nftables Manager          ${ENDCOLOR}"
-    echo -e "${BLUE}===================================${ENDCOLOR}"
-    echo -e "${BLUE}1. Display current rules${ENDCOLOR}"
-    echo -e "${BLUE}2. Add a new rule${ENDCOLOR}"
-    echo -e "${BLUE}3. Delete a rule${ENDCOLOR}"
-    echo -e "${BLUE}4. Flush all rules${ENDCOLOR}"
-    echo -e "${BLUE}5. Save rules to file${ENDCOLOR}"
-    echo -e "${BLUE}6. DDOS_plus (coming soon)${ENDCOLOR}"
-    echo -e "${BLUE}7. Reset nftables (coming soon)${ENDCOLOR}"
-    echo -e "${BLUE}8. Load rules from file${ENDCOLOR}"
-    echo -e "${RED}9. Exit${ENDCOLOR}"
-    echo -e "${BLUE}===================================${ENDCOLOR}"
+echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
+echo -e "${BLUE}║             ${GREEN}🔥 NFTables Manager 🔥         ${BLUE}║${ENDCOLOR}"
+echo -e "${BLUE}╠═══════════════════════════════════════════════════════════╣${ENDCOLOR}"
+echo -e "${BLUE}║ ${ORANGE} Manage your firewall with ease and power ${BLUE}║${ENDCOLOR}"
+echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
     
     PS3="Please enter your choice: "
    options=("Wizard Nftable" "Add With List Ip" "Display Rules" "Add Rule" "Delete Rule" "Flush Rules" "Save Rules" "DDOS Protection" "Add Port Number" "Load Rules" "Exit")
