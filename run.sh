@@ -93,19 +93,23 @@ add_with_list_ip(){
     echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
     
-    read -p "${BLUE}Enter your IP address: ${ENDCOLOR}" USER_IP
+    read -p "$(echo -e "${BLUE}Enter your IP address: ${ENDCOLOR}")" USER_IP
 
-
-    if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || ! { IFS='.'; for i in ${USER_IP//./ }; do [[ $i -le 255 ]]; done; }; then
+    if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
         echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
         exit 1
+    else
+        IFS='.' read -r -a octets <<< "$USER_IP"
+        for octet in "${octets[@]}"; do
+            if ((octet < 0 || octet > 255)); then
+                echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
+                exit 1
+            fi
+        done
     fi
 
     echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
     echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
-
-
-
 
     nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
 
@@ -113,37 +117,35 @@ add_with_list_ip(){
     nft add chain inet whitelist input { type filter hook input priority 0\; }
     nft add rule inet whitelist input ip saddr @whitelist_set accept
 
-    if [[ "$confirm" == "y" ]]; then
-        SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-         nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-         nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-         nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
-         nft add rule inet filter input udp dport {53} ct state new,established accept
-    fi
+    SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+    nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+    nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+    nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
+    nft add rule inet filter input udp dport {53} ct state new,established accept
 
     export USER_IP
     export SSH_PORT
 
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
-     nft add element inet whitelist whitelist_set { $USER_IP }
-
+    nft add element inet whitelist whitelist_set { $USER_IP }
+    
     NFTABLES_CONF="/etc/nftables.conf"
     if [ -f $NFTABLES_CONF ]; then
         echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
         nft list ruleset > $NFTABLES_CONF
     else 
-        echo -e "${RED} File not Found. Touch File and Saving ${ENDCOLOR}"
+        echo -e "${RED}File not found. Creating the file and saving configuration.${ENDCOLOR}"
         touch $NFTABLES_CONF
         nft list ruleset > $NFTABLES_CONF
     fi 
-    export NFTABLES_CONF
+
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
 
 
 display_rules(){
     clear 
-    echo "${GREEN}Current nftables Rules: ${ENDCOLOR}\n\n"
+    echo "${GREEN}Current nftables Rules: ${ENDCOLOR}"\n 
      nft list ruleset
 }
 
