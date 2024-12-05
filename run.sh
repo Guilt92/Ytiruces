@@ -282,15 +282,6 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "                      ${GREEN}🔥 NFTables Manager 🔥   ${ENDCOLOR}"
 echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
 echo " "
-#!/bin/bash
-
-# تعریف رنگ‌ها
-ORANGE=$(echo -ne '\e[38;5;214m')
-BLUE=$(echo -ne '\e[94m')
-RED=$(echo -ne '\e[31m')
-GREEN=$(echo -ne '\e[32m')
-YELLOW=$(echo -ne '\033[0;33m')
-ENDCOLOR=$(echo -ne '\e[0m')
 
 PS3=$(echo -e "\n${BLUE}Please enter your choice: ${ENDCOLOR}")
 
@@ -308,12 +299,15 @@ options=(
     "${RED}Exit${ENDCOLOR}"
 )
 
-while true; do
-    echo -e "\n${BLUE}Available Options:${ENDCOLOR}"
-    for i in "${!options[@]}"; do
-        echo -e "$((i + 1))) ${options[$i]}"
-    done
+clear
+echo " "
+echo " "
+echo -e "${BLUE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
+echo -e "                      ${GREEN}\e[5m🔥 NFTables Manager 🔥   ${ENDCOLOR}" 
+echo -e "${BLUE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
+echo " "
 
+while true; do
     select opt in "${options[@]}"; do
         case $opt in
             "${GREEN}Wizard Nftable${ENDCOLOR}")
@@ -385,7 +379,6 @@ while true; do
                 ;;
             *)
                 echo -e "${RED}Invalid option, please try again.${ENDCOLOR}"
-                break
                 ;;
         esac
     done
