@@ -86,7 +86,7 @@ pkg_install(){
     fi
 }
 
-add_with_list-ip(){
+add_with_list_ip(){
     echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
     
@@ -213,6 +213,10 @@ delete_rule() {
 }
 
 flush_rules() {
+
+    BACKUP_FILE="/etc/nftables.conf.backup"
+    nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
+
     read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
     if [[ "$confirm" == "y" ]]; then
         SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
