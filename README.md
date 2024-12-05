@@ -4,8 +4,6 @@ This is a Bash script for managing `nftables` rules on an Ubuntu-based server. I
 
 ## Features
 
-- **Check root user**: Ensures the script is run as root.
-- **Detect OS**: Verifies if the system is running Ubuntu.
 - **Manage nftables**: Add, delete, flush, and display `nftables` rules.
 - **Whitelist IP**: Allows the user to whitelist an IP address (typically the one used to SSH into the server).
 - **DDoS Protection**: Provides an option to set up basic DDoS protection by rate-limiting incoming traffic.
@@ -13,11 +11,6 @@ This is a Bash script for managing `nftables` rules on an Ubuntu-based server. I
 - **Service Management**: Starts, stops, and restarts the `nftables` service.
 - **Add and Block Ports**: Allows users to add or block specific ports.
 
-## Requirements
-
-- Ubuntu-based system (e.g., Ubuntu, Debian)
-- `nftables` installed
-- Root access to the server
 
 ## Installation
 
@@ -83,7 +76,6 @@ When the script runs, it will present an interactive menu with the following opt
 - **Root Privileges**: The script requires root privileges to modify the `nftables` configuration and restart the `nftables` service.
 - **Ubuntu-Only**: The script is designed to run on Ubuntu-based systems (e.g., Ubuntu, Debian). It will exit if another OS is detected.
 
-## Contributing
 
 Feel free to fork this repository, make improvements, or fix bugs. Pull requests are welcome!
 
