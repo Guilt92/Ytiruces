@@ -151,9 +151,9 @@ display_rules(){
 
 wizard_nftables(){
   nft list tables | grep -q 'inet filter' || nft add table inet filter
-  nft add chain inet filter input { type filter hook input priority 0\; }
-  nft add chain inet filter output { type filter hook output priority 0\; }
-  nft add chain inet filter forward { type filter hook forward priority 0\; }
+  nft add chain inet filter input { type filter hook input priority 0 \; }
+  nft add chain inet filter output { type filter hook output priority 0 \; }
+  nft add chain inet filter forward { type filter hook forward priority 0 \; }
 
   nft list tables | grep -q 'inet nat' || nft add table inet nat
   nft add chain inet nat prerouting { type nat hook prerouting priority 0\; }
@@ -260,29 +260,29 @@ delete_rule() {
 }
 
 
+
 flush_rules() {
-    BACKUP_FILE="/etc/nftables.conf.backup"
-    nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
+  BACKUP_FILE="/etc/nftables.conf.backup"
+  nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
 
-    read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
-    if [[ "$confirm" == "y" ]]; then
-        SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-        
-        nft add table inet filter || true
-        nft add chain inet filter input { type filter hook input priority 0\; } || true
-        nft add chain inet filter output { type filter hook output priority 0\; } || true
-        
-        nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-        nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-        nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
-        nft add rule inet filter input udp dport {53} ct state new,established accept
+  read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
+  if [[ "$confirm" == "y" ]]; then
+    SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
 
-        nft flush ruleset
-        echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
-    else
-        echo -e "${RED}Operation cancelled.${ENDCOLOR}"
-    fi
+    wizard_nftables
+    nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+    nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+    nft flush ruleset
+
+    nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
+    nft add rule inet filter input udp dport {53} ct state new,established accept
+
+    echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
+  else
+    echo -e "${RED}Operation cancelled.${ENDCOLOR}"
+  fi
 }
+
 
 save_nftables_rules() {
     local RULES_FILE="/etc/nftables.conf"
@@ -341,23 +341,23 @@ while true; do
     echo -e "${RED}8. ${ENDCOLOR} DDOS Protection"                         
     echo -e "${RED}9. ${ENDCOLOR} Add Port Number"                         
     echo -e "${RED}10.${ENDCOLOR} Load Rules" 
-    echo -e "${RED}11. ${ENDCOLOR} Delete Port" 
+    echo -e "${RED}11. ${ENDCOLOR} Block Port" 
     echo -e "${RED}12.${ENDCOLOR} Exit"                                    
     echo                                                                   
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
 
     case $choice in
         1) pkg_install; sleep 1; clear; wizard_nftables; service_nftables; break ;;
-        2) add_with_list_ip; sleep 1; service_nftables; break ;;        
+        2) add_with_list_ip; sleep 1; systemctl  restart nftables; break ;;        
         3) display_rules; break ;;                                        
-        4) add_rule; service_nftables; break ;;                           
-        5) delete_rule; service_nftables; break ;;                        
-        6) flush_rules; sleep 1; service_nftables; break ;;              
+        4) add_rule; systemctl  restart nftables; break ;;                           
+        5) delete_rule; systemctl  restart nftables; break ;;                        
+        6) flush_rules; sleep 1; systemctl  restart nftables; break ;;              
         7) save_nftables_rules; sleep 1; service_nftables; break ;;  
         8) ddos; break ;;                                                  
-        9) add_port_user; sleep 1; service_nftables; break ;;              
-        10) load_rules; sleep 1; service_nftables; break ;;
-        11) block_port_user; sleep 1 ;service_nftables  ; break;;
+        9) add_port_user; sleep 1; systemctl  restart nftables ; break ;;              
+        10) load_rules; sleep 1; systemctl  restart nftables; break ;;
+        11) block_port_user; sleep 1 ;systemctl  restart nftables ; break;;
         12) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
