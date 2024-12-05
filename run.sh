@@ -145,29 +145,30 @@ add_with_list_ip(){
 
 display_rules(){
     clear 
-    echo "${GREEN}Current nftables Rules: ${ENDCOLOR}"\n 
+    echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
      nft list ruleset
 }
 
-tables_add_defualt(){
-     nft add table ip filter
-     nft add table ip nat
-     nft add table ip raw
-     nft add table ip mangle
+wizard_nftables(){
+    nft add table inet filter
+    nft add chain inet filter input { type filter hook input priority 0 \; }
+    nft add chain inet filter output { type filter hook output priority 0 \; }
+    nft add chain inet filter forward { type filter hook forward priority 0 \; }
+    
+    nft add table inet nat
+    nft add chain inet nat prerouting { type nat hook prerouting priority 0 \; }
+    nft add chain inet nat postrouting { type nat hook postrouting priority 100 \; }
+
+    nft add table inet raw
+    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
+    nft add chain inet raw output { type filter hook output priority -300 \; }
+
+    nft add table inet mangle
+    nft add chain inet mangle prerouting { type filter hook prerouting priority -150 \; }
+    nft add chain inet mangle postrouting { type filter hook postrouting priority -150 \; }
+    echo -e "${GREEN}All chains & table successfully created!${ENDCOLOR}"
+
 }
-
-wizard_nftables() {
-     nft add chain ip nat prerouting { type nat hook prerouting priority 0 \; }
-     nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
-     nft add chain ip nat output { type nat hook output priority 100 \; }
-     nft add chain ip raw prerouting { type filter hook prerouting priority -300 \; }
-     nft add chain ip raw output { type filter hook output priority -300 \; }
-     nft add chain ip mangle prerouting { type filter hook prerouting priority -150 \; }
-     nft add chain ip mangle postrouting { type filter hook postrouting priority -150 \; }
-
-    echo -e "${GREEN}All chains successfully created!${ENDCOLOR}"
-}
-
 add_rule(){
     read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
     read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
@@ -185,40 +186,56 @@ add_rule(){
 }
 
 
-add_port_user(){
-    read -p "${BLUE}Enter port: ${ENDCOLOR}" port
-     nft add rule inet filter input tcp dport $port ct state new,established accept
-     nft add rule inet filter output tcp sport $port ct state established accept
-    
-    while true; do
-        read -p "${BLUE}Enter port: ${ENDCOLOR}" port
+add_port_user() {
+    read -p "${BLUE}Enter port: ${ENDCOLOR}" PORT
 
-        if [[ $port =~ ^[0-9]+$ ]] && [ $port -ge 1 ] && [ $port -le 65535 ]; then
-             nft add rule inet filter input tcp dport $port ct state new,established accept
-             nft add rule inet filter output tcp sport $port ct state established accept
-            
-             nft add rule inet filter input udp dport $port ct state new,established accept
-             nft add rule inet filter output udp sport $port ct state established accept
-            
-            echo "${GREEN}Port $port has been successfully added for TCP and UDP.${ENDCOLOR}"
-            break
-        else
-            echo "${RED}Invalid port number. Please enter a number between 1 and 65535.${ENDCOLOR}"
-        fi
-    done
- }
+    if [[ ! $PORT =~ ^[0-9]+$ || $PORT -lt 1 || $PORT -gt 65535 ]]; then
+        echo -e "${RED}Invalid port number. Please enter a number between 1 and 65535.${ENDCOLOR}"
+        return
+    fi
+
+    nft add rule inet filter input tcp dport $PORT ct state new,established accept || {
+        echo -e "${RED}Failed to add input rule for port $PORT.${ENDCOLOR}"
+        return
+    }
+    nft add rule inet filter output tcp sport $PORT ct state established accept || {
+        echo -e "${RED}Failed to add output rule for port $PORT.${ENDCOLOR}"
+        return
+    }
+
+    echo -e "${GREEN}Port $PORT has been successfully added.${ENDCOLOR}"
+    exit
+}
+
 
 
 delete_rule() {
+    echo ""
+
     display_rules
+    echo ""
     read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
+
+    if [[ ! "$chain" =~ ^(input|output|forward)$ ]]; then
+        echo -e "${RED}Invalid chain. Please choose 'input', 'output', or 'forward'.${ENDCOLOR}"
+        return
+    fi
+
+    echo -e "${YELLOW}Displaying current rules in the $chain chain...${ENDCOLOR}"
+    nft list chain inet filter $chain
+
     read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
-     nft delete rule ip filter "$chain" handle $rule_number
+
+    nft delete rule inet filter $chain handle $rule_number || {
+        echo -e "${RED}Failed to delete rule. Please make sure the rule number is correct.${ENDCOLOR}"
+        return
+    }
+
     echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
 
-flush_rules() {
 
+flush_rules() {
     BACKUP_FILE="/etc/nftables.conf.backup"
     nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
 
@@ -226,13 +243,16 @@ flush_rules() {
     if [[ "$confirm" == "y" ]]; then
         SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
         
-         nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-         nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-         nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
-         nft add rule inet filter input udp dport {53} ct state new,established accept
-
-         nft flush ruleset
+        nft add table inet filter || true
+        nft add chain inet filter input { type filter hook input priority 0\; } || true
+        nft add chain inet filter output { type filter hook output priority 0\; } || true
         
+        nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
+        nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+        nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
+        nft add rule inet filter input udp dport {53} ct state new,established accept
+        
+        nft flush ruleset
         echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
     else
         echo -e "${RED}Operation cancelled.${ENDCOLOR}"
@@ -301,7 +321,7 @@ while true; do
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
 
     case $choice in
-        1) pkg_install; sleep 1; clear; tabls_add_defualt; sleep 1; clear; wizard_nftables; service_nftables; break ;;
+        1) pkg_install; sleep 1; clear; wizard_nftables; service_nftables; break ;;
         2) add_with_list_ip; sleep 1; service_nftables; break ;;        
         3) display_rules; break ;;                                        
         4) add_rule; service_nftables; break ;;                           
