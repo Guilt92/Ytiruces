@@ -150,25 +150,27 @@ display_rules(){
 }
 
 wizard_nftables(){
-    nft add table inet filter
-    nft add chain inet filter input { type filter hook input priority 0 \; }
-    nft add chain inet filter output { type filter hook output priority 0 \; }
-    nft add chain inet filter forward { type filter hook forward priority 0 \; }
-    
-    nft add table inet nat
-    nft add chain inet nat prerouting { type nat hook prerouting priority 0 \; }
-    nft add chain inet nat postrouting { type nat hook postrouting priority 100 \; }
+  nft list tables | grep -q 'inet filter' || nft add table inet filter
+  nft add chain inet filter input { type filter hook input priority 0\; }
+  nft add chain inet filter output { type filter hook output priority 0\; }
+  nft add chain inet filter forward { type filter hook forward priority 0\; }
 
-    nft add table inet raw
-    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
-    nft add chain inet raw output { type filter hook output priority -300 \; }
+  nft list tables | grep -q 'inet nat' || nft add table inet nat
+  nft add chain inet nat prerouting { type nat hook prerouting priority 0\; }
+  nft add chain inet nat postrouting { type nat hook postrouting priority 100\; }
 
-    nft add table inet mangle
-    nft add chain inet mangle prerouting { type filter hook prerouting priority -150 \; }
-    nft add chain inet mangle postrouting { type filter hook postrouting priority -150 \; }
-    echo -e "${GREEN}All chains & table successfully created!${ENDCOLOR}"
+  nft list tables | grep -q 'inet raw' || nft add table inet raw
+  nft add chain inet raw prerouting { type filter hook prerouting priority -300\; }
+  nft add chain inet raw output { type filter hook output priority -300\; }
 
+  nft list tables | grep -q 'inet mangle' || nft add table inet mangle
+  nft add chain inet mangle prerouting { type filter hook prerouting priority -150\; }
+  nft add chain inet mangle postrouting { type filter hook postrouting priority -150\; }
+
+  echo -e "${GREEN}All chains & table successfully created!${ENDCOLOR}"
 }
+
+
 add_rule(){
     read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
     read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
@@ -205,6 +207,29 @@ add_port_user() {
 
     echo -e "${GREEN}Port $PORT has been successfully added.${ENDCOLOR}"
     exit
+}
+
+
+
+block_port_user() {
+  read -p "${BLUE}Enter port to block: ${ENDCOLOR}" PORT
+
+  if [[ ! $PORT =~ ^[0-9]+$ || $PORT -lt 1 || $PORT -gt 65535 ]]; then
+    echo -e "${RED}Invalid port number. Please enter a number between 1 and 65535.${ENDCOLOR}"
+    return
+  fi
+
+  nft add rule inet filter input tcp dport $PORT drop || {
+    echo -e "${RED}Failed to block input rule for port $PORT.${ENDCOLOR}"
+    return
+  }
+
+  nft add rule inet filter output tcp sport $PORT drop || {
+    echo -e "${RED}Failed to block output rule for port $PORT.${ENDCOLOR}"
+    return
+  }
+
+  echo -e "${GREEN}Port $PORT has been successfully blocked.${ENDCOLOR}"
 }
 
 
@@ -251,7 +276,7 @@ flush_rules() {
         nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
         nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
         nft add rule inet filter input udp dport {53} ct state new,established accept
-        
+
         nft flush ruleset
         echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
     else
@@ -315,8 +340,9 @@ while true; do
     echo -e "${RED}7. ${ENDCOLOR} Save Rules"                              
     echo -e "${RED}8. ${ENDCOLOR} DDOS Protection"                         
     echo -e "${RED}9. ${ENDCOLOR} Add Port Number"                         
-    echo -e "${RED}10.${ENDCOLOR} Load Rules"                              
-    echo -e "${RED}11.${ENDCOLOR} Exit"                                    
+    echo -e "${RED}10.${ENDCOLOR} Load Rules" 
+    echo -e "${RED}11. ${ENDCOLOR} Delete Port" 
+    echo -e "${RED}12.${ENDCOLOR} Exit"                                    
     echo                                                                   
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
 
@@ -331,7 +357,8 @@ while true; do
         8) ddos; break ;;                                                  
         9) add_port_user; sleep 1; service_nftables; break ;;              
         10) load_rules; sleep 1; service_nftables; break ;;
-        11) sleep 1; clear; echo "Exiting..."; exit ;;
+        11) block_port_user; sleep 1 ;service_nftables  ; break;;
+        12) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
 
