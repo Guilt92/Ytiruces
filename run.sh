@@ -278,14 +278,11 @@ while true
 do
 clear
 echo " "
-echo " "
+echo " "    
 echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
-echo -e "${BLUE}║             ${GREEN}🔥 NFTables Manager 🔥         ${BLUE}║${ENDCOLOR}"
+echo -e "                      ${GREEN}🔥 NFTables Manager 🔥   
 echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
 echo " "
-echo " "
-echo " "
-    
   PS3=$(echo -e "\n${BLUE}Please enter your choice: ${ENDCOLOR}")
 echo " "
 
@@ -349,7 +346,7 @@ select opt in "${options[@]}"; do
             break
             ;;
         "${GREEN}DDOS Protection${ENDCOLOR}")
-            echo -e "${RED}DDOS Protection Active${ENDCOLOR}"
+         echo -e "${RED}DDOS Protection Active${ENDCOLOR}"
             ddos
             break
             ;;
