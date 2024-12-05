@@ -280,7 +280,7 @@ clear
 echo " "
 echo " "    
 echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
-echo -e "                      ${GREEN}🔥 NFTables Manager 🔥   
+echo -e "                      ${GREEN}🔥 NFTables Manager 🔥   ${ENDCOLOR}"
 echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
 echo " "
   PS3=$(echo -e "\n${BLUE}Please enter your choice: ${ENDCOLOR}")
