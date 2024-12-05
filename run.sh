@@ -255,31 +255,18 @@ load_rules() {
 
 
 ddos(){
-
-     nft add table ip raw
-     nft add set ip raw banned_ips { type ipv4_addr\; flags timeout\; timeout 1h\; }
-     nft add chain ip raw prerouting { type filter hook prerouting priority -300 \; }
-
-     nft add rule ip raw prerouting ip saddr @banned_ips drop
-     nft add rule ip raw prerouting limit rate 1000/second drop
-     nft add rule ip raw prerouting udp limit rate 500/second burst 50 packets drop
-
+    
+    nft add table ip raw
+    nft add set ip raw banned_ips { type ipv4_addr\; flags timeout\; timeout 12h\; }
+    nft add chain ip raw prerouting { type filter hook prerouting priority -300 \; }
+    nft add rule ip raw prerouting ip saddr @banned_ips drop
+    nft add rule ip raw prerouting limit rate 1000/second add @banned_ips { ip saddr }
+    nft add rule ip raw prerouting limit rate 500/second log prefix "Potential DDoS: " level warning
+    nft add rule ip raw prerouting udp limit rate 500/second burst 50 packets drop
+    nft add rule ip raw prerouting tcp flags syn limit rate 50/second burst 10 drop
+    nft list ruleset > NFTABLES_CONF
 }
 
-
-auto_ban_ip() {
-     nft add rule ip raw prerouting limit rate over 1000/second log prefix "DDOS detected: " level warning
-
-    dmesg --follow | while read -r line; do
-        if [[ "$line" =~ "DDOS detected:" ]]; then
-            ip=$(echo "$line" | grep -oE 'SRC=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | cut -d= -f2)
-            if [[ -n "$ip" && "$ip" != "$USER_IP" ]]; then
-                echo "Blocking IP: $ip"
-                 nft add element ip raw banned_ips { $ip }
-            fi
-        fi
-    done
-}
 
 
 
@@ -352,8 +339,7 @@ do
                 ;;
             "DDOS Protection")
                 echo -e " DDOS Protection Active "
-                ddos &
-                auto_ban_ip &
+                ddos 
                 break
                 ;;
             "Add Port Number")
