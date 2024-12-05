@@ -293,7 +293,7 @@ options=(
     "${RED}Delete Rule${ENDCOLOR}" 
     "${ORANGE}Flush Rules${ENDCOLOR}" 
     "${GREEN}Save Rules${ENDCOLOR}" 
-    "${RED}DDOS Protection${ENDCOLOR}" 
+"${RED}DDOS Protection${ENDCOLOR}" 
     "${BLUE}Add Port Number${ENDCOLOR}" 
     "${YELLOW}Load Rules${ENDCOLOR}" 
     "${RED}Exit${ENDCOLOR}"
@@ -302,9 +302,9 @@ options=(
 clear
 echo " "
 echo " "
-echo -e "${BLUE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
-echo -e "                      ${GREEN}\e[5m🔥 NFTables Manager 🔥   ${ENDCOLOR}" 
-echo -e "${BLUE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
+echo -e "${ORANGE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
+echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}" 
+echo -e "${ORANGE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
 echo " "
 
 while true; do
