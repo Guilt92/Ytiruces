@@ -276,94 +276,109 @@ ddos(){
 
 while true
 do
-    clear
+clear
+echo " "
+echo " "
 echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
 echo -e "${BLUE}║             ${GREEN}🔥 NFTables Manager 🔥         ${BLUE}║${ENDCOLOR}"
-echo -e "${BLUE}╠═══════════════════════════════════════════════════════════╣${ENDCOLOR}"
-echo -e "${BLUE}║ ${ORANGE} Manage your firewall with ease and power ${BLUE}║${ENDCOLOR}"
 echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
+echo " "
+echo " "
+echo " "
     
-    PS3="Please enter your choice: "
-   options=("Wizard Nftable" "Add With List Ip" "Display Rules" "Add Rule" "Delete Rule" "Flush Rules" "Save Rules" "DDOS Protection" "Add Port Number" "Load Rules" "Exit")
- 
-    select opt in "${options[@]}"; do
-    
+  PS3=$(echo -e "\n${BLUE}Please enter your choice: ${ENDCOLOR}")
+echo " "
 
-        case $opt in
-            "Wizard Nftable")
-                pkg_install
-                sleep 1
-                clear 
-                tabls_add_defualt
-                sleep 1 
-                clear 
-                wizard_nftables
-                service_nftables
-                break
-                ;;
-            "Add With List Ip")
-                add_with_list_ip
-                sleep 1
-                service_nftables
-                break
-                ;;
-            "Display Rules")
-                display_rules
-                break
-                ;;
-            "Add Rule")
-                add_rule
-                service_nftables
-                break
-                ;;
-            "Delete Rule")
-                delete_rule
-                service_nftables
-                break
-                ;;
-            "Flush Rules")
-                flush_rules
-                sleep 1
-                service_nftables
-                break
-                ;;
-            "Save Rules")
-                save_nftables_rules
-                sleep 1
-                service_nftables
-                break
-                ;;
-            "DDOS Protection")
-                echo -e " DDOS Protection Active "
-                ddos 
-                break
-                ;;
-            "Add Port Number")
-                add_port_user
-                sleep 1
-                service_nftables
-                break
-                ;;
-            "Load Rules")
-                load_rules
-                sleep 1
-                service_nftables
-                break
-                ;;
-            "Exit")
-                sleep 1 
-                echo -e "${RED}Exiting...${ENDCOLOR}"
-                sleep 1 
-                clear 
-                exit
-                ;;
-            *)
-                echo -e "${RED}Invalid option, please try again.${ENDCOLOR}"
-                sleep .5 
-                clear 
-                ;;
-        esac
-    done
+options=(
+    "${GREEN}Wizard Nftable${ENDCOLOR}" 
+    "${GREEN}Add With List Ip${ENDCOLOR}" 
+    "${GREEN}Display Rules${ENDCOLOR}" 
+    "${GREEN}Add Rule${ENDCOLOR}" 
+    "${GREEN}Delete Rule${ENDCOLOR}" 
+    "${GREEN}Flush Rules${ENDCOLOR}" 
+    "${GREEN}Save Rules${ENDCOLOR}" 
+    "${GREEN}DDOS Protection${ENDCOLOR}" 
+    "${GREEN}Add Port Number${ENDCOLOR}" 
+    "${GREEN}Load Rules${ENDCOLOR}" 
+    "${RED}Exit${ENDCOLOR}"
+)
+
+select opt in "${options[@]}"; do
+    case $opt in
+        "${GREEN}Wizard Nftable${ENDCOLOR}")
+            pkg_install
+            sleep 1
+            clear
+            tabls_add_defualt
+            sleep 1
+            clear
+            wizard_nftables
+            service_nftables
+            break
+            ;;
+        "${GREEN}Add With List Ip${ENDCOLOR}")
+            add_with_list_ip
+            sleep 1
+            service_nftables
+            break
+            ;;
+        "${GREEN}Display Rules${ENDCOLOR}")
+            display_rules
+            break
+            ;;
+        "${GREEN}Add Rule${ENDCOLOR}")
+            add_rule
+            service_nftables
+            break
+            ;;
+        "${RED}Delete Rule${ENDCOLOR}")
+            delete_rule
+            service_nftables
+            break
+            ;;
+        "${RED}Flush Rules${ENDCOLOR}")
+            flush_rules
+            sleep 1
+            service_nftables
+            break
+            ;;
+        "${GREEN}Save Rules${ENDCOLOR}")
+            save_nftables_rules
+            sleep 1
+            service_nftables
+            break
+            ;;
+        "${GREEN}DDOS Protection${ENDCOLOR}")
+            echo -e "${RED}DDOS Protection Active${ENDCOLOR}"
+            ddos
+            break
+            ;;
+        "${GREEN}Add Port Number${ENDCOLOR}")
+            add_port_user
+            sleep 1
+            service_nftables
+            break
+            ;;
+        "${GREEN}Load Rules${ENDCOLOR}")
+            load_rules
+            sleep 1
+            service_nftables
+            break
+            ;;
+        "${RED}Exit${ENDCOLOR}")
+            sleep 1
+            echo -e "${RED}Exiting...${ENDCOLOR}"
+            sleep 1
+            clear
+            exit
+            ;;
+        *)
+            echo -e "${RED}Invalid option, please try again.${ENDCOLOR}"
+            sleep .5
+            clear
+            ;;
+    esac
+done
 
     echo -e "${BLUE}Press Enter to return to the main menu...${ENDCOLOR}"
     read -r
