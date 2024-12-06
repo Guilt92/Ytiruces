@@ -277,6 +277,9 @@ add_port_user() {
         echo -e "${RED}Error: No $PORT entered. Exiting...${ENDCOLOR}"
         exit 1
     fi
+    
+    nft delete rule inet filter input tcp dport $PORT || echo -e "${RED}No input rule found for port $PORT.${ENDCOLOR}"
+    nft delete rule inet filter output tcp sport $PORT || echo -e "${RED}No output rule found for port $PORT.${ENDCOLOR}"
 
     nft add rule inet filter input tcp dport $PORT ct state new,established accept || {
         echo -e "${RED}Failed to add input rule for port $PORT.${ENDCOLOR}"
