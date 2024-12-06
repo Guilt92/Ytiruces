@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Author:   OuTiS
 
@@ -90,7 +90,7 @@ pkg_install(){
 }
 
 
-add_with_list_ip(){
+add_ip_withlist(){
     echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
 
@@ -152,7 +152,7 @@ add_with_list_ip(){
 }
 
 
-add_block_list_ip(){
+add_ip_block_list(){
     echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
 
     read -p "$(echo -e "${BLUE}Enter the IP address to block: ${ENDCOLOR}")" USER_IP
@@ -207,7 +207,10 @@ display_rules(){
     echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
      nft list ruleset
 }
-backup(){
+
+
+
+backup_conf_nft(){
     
 if [ -f /etc/nftables.conf ]; then
     echo -e "${GREEN}File Config nftables exists and backup config nftables ${ENDCOLOR}"
@@ -225,8 +228,9 @@ else
 fi
     touch /etc/nftables.conf
 }
-wizard_nftables(){
-    backup
+
+nftwizard(){
+backup_conf_nft
   nft list tables | grep -q 'inet filter' || nft add table inet filter
   nft add chain inet filter input { type filter hook input priority 0 \; }
   nft add chain inet filter output { type filter hook output priority 0 \; }
@@ -265,38 +269,40 @@ add_rule(){
 }
 
 
-add_port_user() {
-    read -p "${BLUE}Enter port: ${ENDCOLOR}" PORT
+add_port_withlist() {
+  read -p "${BLUE}Enter port: ${ENDCOLOR}" PORT
 
-    if [[ ! $PORT =~ ^[0-9]+$ || $PORT -lt 1 || $PORT -gt 65535 ]]; then
-        echo -e "${RED}Invalid port number. Please enter a number between 1 and 65535.${ENDCOLOR}"
-        return
-    fi
+  if [[ ! $PORT =~ ^[0-9]+$ || $PORT -lt 1 || $PORT -gt 65535 ]]; then
+    echo -e "${RED}Invalid port number. Please enter a number between 1 and 65535.${ENDCOLOR}"
+    return
+  fi
 
-     if [[ -z "$PORT" ]]; then
-        echo -e "${RED}Error: No $PORT entered. Exiting...${ENDCOLOR}"
-        exit 1
-    fi
-    
-    nft delete rule inet filter input tcp dport $PORT || echo -e "${RED}No input rule found for port $PORT.${ENDCOLOR}"
-    nft delete rule inet filter output tcp sport $PORT || echo -e "${RED}No output rule found for port $PORT.${ENDCOLOR}"
+  if [[ -z "$PORT" ]]; then
+    echo -e "${RED}Error: No $PORT entered. Exiting...${ENDCOLOR}"
+    exit 1
+  fi
 
-    nft add rule inet filter input tcp dport $PORT ct state new,established accept || {
-        echo -e "${RED}Failed to add input rule for port $PORT.${ENDCOLOR}"
-        return
-    }
-    nft add rule inet filter output tcp sport $PORT ct state established accept || {
-        echo -e "${RED}Failed to add output rule for port $PORT.${ENDCOLOR}"
-        return
-    }
+  #if nft -a list ruleset | grep -q "tcp dport $PORT ct state new,established accept"; then
+  #  echo -e "${BLUE}Port $PORT is already in the whitelist.${ENDCOLOR}"
+  #  return
+  # fi
+  # nft add rule inet filter input tcp dport $PORT ct state new,established accept
+  # nft add rule inet filter output tcp sport $PORT ct state established accept
+ 
+  nft insert rule inet filter input position 0 tcp dport $PORT  accept
+  nft insert rule inet filter output position 0 tcp dport $PORT  accept
 
-    echo -e "${GREEN}Port $PORT has been successfully added.${ENDCOLOR}"
-    exit
+  # INPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp dport $PORT ct state new,established accept" | grep -oP "(?<=handle )\d+")
+  # OUTPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp sport $PORT ct state established accept" | grep -oP "(?<=handle )\d+")
+
+  echo -e "${GREEN}Port $PORT has been successfully added to the whitelist.${ENDCOLOR}"
+ # echo "Input rule handle: $INPUT_RULE_HANDLE"
+ # echo "Output rule handle: $OUTPUT_RULE_HANDLE"
+
 }
 
 
-
-block_port_user() {
+block_port() {
   read -p "${BLUE}Enter port to block: ${ENDCOLOR}" PORT
 
   if [[ ! $PORT =~ ^[0-9]+$ || $PORT -lt 1 || $PORT -gt 65535 ]]; then
@@ -304,19 +310,33 @@ block_port_user() {
     return
   fi
 
-  nft add rule inet filter input tcp dport $PORT drop || {
-    echo -e "${RED}Failed to block input rule for port $PORT.${ENDCOLOR}"
-    return
-  }
+  # INPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp dport $PORT ct state new,established accept" | grep -oP "(?<=handle )\d+")
+  # OUTPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp sport $PORT ct state established accept" | grep -oP "(?<=handle )\d+")
 
-  nft add rule inet filter output tcp sport $PORT drop || {
-    echo -e "${RED}Failed to block output rule for port $PORT.${ENDCOLOR}"
-    return
-  }
+  # if [ -n "$INPUT_RULE_HANDLE" ]; then
+  # nft delete rule inet filter input handle $INPUT_RULE_HANDLE
+  #  echo -e "${GREEN}Input rule for port $PORT has been successfully deleted.${ENDCOLOR}"
+  # else
+  #  echo -e "${RED}No input rule found for port $PORT in the whitelist.${ENDCOLOR}"
+  # fi
 
-  echo -e "${GREEN}Port $PORT has been successfully blocked.${ENDCOLOR}"
+  #if [ -n "$OUTPUT_RULE_HANDLE" ]; then
+  # nft delete rule inet filter output handle $OUTPUT_RULE_HANDLE
+  # echo -e "${GREEN}Output rule for port $PORT has been successfully deleted.${ENDCOLOR}"
+  # else
+  # echo -e "${RED}No output rule found for port $PORT in the whitelist.${ENDCOLOR}"
+  # fi
+  #
+  #
+  # nft add rule inet filter input tcp dport $PORT drop
+  # nft add rule inet filter output tcp sport $PORT drop
+
+   nft insert rule inet filter input position 0 tcp dport $PORT  drop
+   nft insert rule inet filter output position 0 tcp dport $PORT  drop
+
+   echo -e "${GREEN}Port $PORT has been successfully blocked.${ENDCOLOR}"
+
 }
-
 
 
 delete_rule() {
@@ -346,7 +366,7 @@ delete_rule() {
 
 
 
-flush_rules() {
+flush_all_rules() {
   BACKUP_FILE="/etc/nftables.conf.backup"
   nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
 
@@ -387,7 +407,7 @@ save_nftables_rules() {
     echo -e "${GREEN} nft -f $RULES_FILE${ENDCOLOR}"
 }
 
-load_rules() {
+load_rules_file() {
     read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
     if [[ -f $filename ]]; then
          nft -f $filename
@@ -431,34 +451,34 @@ while true; do
     echo " "
     echo "============================"
     echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable"
-    echo -e "${RED}2. ${ENDCOLOR} Add With List Ip"
+    echo -e "${RED}2. ${ENDCOLOR} Add Ip WithList"
     echo -e "${RED}3. ${ENDCOLOR} Add Block List Ip"
     echo -e "${RED}4. ${ENDCOLOR} Display Rules"
     echo -e "${RED}5. ${ENDCOLOR} Add Rule"
     echo -e "${RED}6. ${ENDCOLOR} Delete Rule"
-    echo -e "${RED}7. ${ENDCOLOR} Flush Rules"                             
+    echo -e "${RED}7. ${ENDCOLOR} Flush All Rules"                             
     echo -e "${RED}8. ${ENDCOLOR} Save Rules"                              
     echo -e "${RED}9. ${ENDCOLOR} DDOS Protection"                         
-    echo -e "${RED}10.${ENDCOLOR} Add Port Number"                         
-    echo -e "${RED}11.${ENDCOLOR} Load Rules" 
+    echo -e "${RED}10.${ENDCOLOR} Add WithList Port"                         
+    echo -e "${RED}11.${ENDCOLOR} Load Rules File" 
     echo -e "${RED}12.${ENDCOLOR} Block Port" 
     echo -e "${RED}13.${ENDCOLOR} Exit"                                    
     echo                                                                   
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
 
     case $choice in
-        1)  pkg_install; sleep 1; clear; wizard_nftables; service_nftables; continue ;;
-        2)  add_with_list_ip; sleep 1; continue ;;        
-        3)  add_block_list_ip; sleep 1 ; continue ;;
+        1)  pkg_install ; service_nftables ; sleep 1; clear; nftwizard; reload_nft ; continue ;;
+        2)  add_ip_withlist; sleep 1; continue ;;        
+        3)  add_ip_block_list; sleep 1 ; continue ;;
         4)  display_rules; continue ;;                                        
         5)  add_rule ; continue ;;                           
         6)  delete_rule ; continue ;;                        
-        7)  flush_rules; sleep 1 ; continue ;;              
+        7)  flush_all_rules ; sleep 1 ; continue ;;              
         8)  save_nftables_rules; sleep 1; service_nftables; continue;;  
         9)  ddos; continue ;;                                                  
-        10) add_port_user; sleep 1; reload_nft ; continue ;;              
-        11) load_rules; sleep 1; reload_nft ;continue ;;
-        12) block_port_user; sleep 1 ;reload_nft ; continue ;;
+        10) add_port_withlist; sleep 1; reload_nft ; continue ;;              
+        11) load_rules_file; sleep 1; reload_nft ;continue ;;
+        12) block_port; sleep 1 ;reload_nft ; continue ;;
         13) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
