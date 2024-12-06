@@ -118,7 +118,7 @@ add_with_list_ip(){
 
     echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
     echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
-
+    
     nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
     nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
     nft add chain inet whitelist input { type filter hook input priority 0\; }
@@ -135,6 +135,7 @@ add_with_list_ip(){
     export SSH_PORT
 
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
+    nft delete element inet blacklist blacklist_set { $USER_IP }
     nft add element inet whitelist whitelist_set { $USER_IP }
 
     NFTABLES_CONF="/etc/nftables.conf"
@@ -208,6 +209,7 @@ display_rules(){
 }
 
 wizard_nftables(){
+
   nft list tables | grep -q 'inet filter' || nft add table inet filter
   nft add chain inet filter input { type filter hook input priority 0 \; }
   nft add chain inet filter output { type filter hook output priority 0 \; }
