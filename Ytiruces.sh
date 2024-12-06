@@ -335,8 +335,9 @@ flush_rules() {
     SSH_PORT=${SSH_PORT:-22}
     
     nft flush ruleset
-    echo -e "${YELLOW}All rules flushed.${ENDCOLOR}"
-
+    echo -e "${YELLOW}All rules flushed.${ENDCOLOR}" 
+    nft delete table inet whitelist 2>/dev/null
+    nft delete table inet blacklist 2>/dev/null
     wizard_nftables    
     nft add rule inet filter input ip saddr 0.0.0.0/0 tcp dport $SSH_PORT ct state new,established accept
     nft add rule inet filter output ip daddr 0.0.0.0/0 tcp sport $SSH_PORT ct state established accept
@@ -425,12 +426,12 @@ while true; do
 
     case $choice in
         1)  pkg_install; sleep 1; clear; wizard_nftables; service_nftables; continue ;;
-        2)  add_with_list_ip; sleep 1; reload_nft; continue ;;        
-        3)  add_block_list_ip; sleep 1 ;reload_nft ; continue ;;
+        2)  add_with_list_ip; sleep 1; continue ;;        
+        3)  add_block_list_ip; sleep 1 ; continue ;;
         4)  display_rules; continue ;;                                        
-        5)  add_rule; reload_nft; continue ;;                           
-        6)  delete_rule; reload_nft ; continue ;;                        
-        7)  flush_rules; sleep 1; reload_nft; continue ;;              
+        5)  add_rule ; continue ;;                           
+        6)  delete_rule ; continue ;;                        
+        7)  flush_rules; sleep 1 ; continue ;;              
         8)  save_nftables_rules; sleep 1; service_nftables; continue;;  
         9)  ddos; continue ;;                                                  
         10) add_port_user; sleep 1; reload_nft ; continue ;;              
