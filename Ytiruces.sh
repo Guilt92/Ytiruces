@@ -89,11 +89,17 @@ pkg_install(){
     fi
 }
 
+
 add_with_list_ip(){
     echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
-    
+
     read -p "$(echo -e "${BLUE}Enter your IP address: ${ENDCOLOR}")" USER_IP
+
+    if [[ -z "$USER_IP" ]]; then
+        echo -e "${RED}Error: No IP entered. Exiting...${ENDCOLOR}"
+        exit 1
+    fi
 
     if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
         echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
@@ -108,36 +114,38 @@ add_with_list_ip(){
         done
     fi
 
+    wizard_nftables
+
     echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
     echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
 
     nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
-
     nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
     nft add chain inet whitelist input { type filter hook input priority 0\; }
     nft add rule inet whitelist input ip saddr @whitelist_set accept
-
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-    nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-    nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
-    nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
-    nft add rule inet filter input udp dport {53} ct state new,established accept
+    SSH_PORT=${SSH_PORT:-22}
+
+    nft add rule inet filter input ct state new,established tcp dport $SSH_PORT accept
+    nft add rule inet filter output ct state established tcp sport $SSH_PORT accept
+    nft add rule inet filter input ct state new,established tcp dport {80, 443, 53} accept
+    nft add rule inet filter input ct state new,established udp dport {53} accept
 
     export USER_IP
     export SSH_PORT
 
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
     nft add element inet whitelist whitelist_set { $USER_IP }
-    
+
     NFTABLES_CONF="/etc/nftables.conf"
     if [ -f $NFTABLES_CONF ]; then
         echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
         nft list ruleset > $NFTABLES_CONF
-    else 
+    else
         echo -e "${RED}File not found. Creating the file and saving configuration.${ENDCOLOR}"
         touch $NFTABLES_CONF
         nft list ruleset > $NFTABLES_CONF
-    fi 
+    fi
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
@@ -147,6 +155,11 @@ add_block_list_ip(){
     echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
 
     read -p "$(echo -e "${BLUE}Enter the IP address to block: ${ENDCOLOR}")" USER_IP
+
+    if [[ -z "$USER_IP" ]]; then
+        echo -e "${RED} No Ip Entered. EXiting ....  ${ENDCOLOR}"
+        exit 1 
+    fi 
 
     if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
         echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
@@ -241,6 +254,11 @@ add_port_user() {
         return
     fi
 
+     if [[ -z "$PORT" ]]; then
+        echo -e "${RED}Error: No $PORT entered. Exiting...${ENDCOLOR}"
+        exit 1
+    fi
+
     nft add rule inet filter input tcp dport $PORT ct state new,established accept || {
         echo -e "${RED}Failed to add input rule for port $PORT.${ENDCOLOR}"
         return
@@ -312,15 +330,19 @@ flush_rules() {
 
   read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
   if [[ "$confirm" == "y" ]]; then
+    
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-
-    wizard_nftables
-    nft add rule inet filter input tcp dport $SSH_PORT ct state new,established accept
-    nft add rule inet filter output tcp sport $SSH_PORT ct state established accept
+    SSH_PORT=${SSH_PORT:-22}
+    
     nft flush ruleset
+    echo -e "${YELLOW}All rules flushed.${ENDCOLOR}"
 
-    nft add rule inet filter input tcp dport {80, 443, 53} ct state new,established accept
-    nft add rule inet filter input udp dport {53} ct state new,established accept
+    wizard_nftables    
+    nft add rule inet filter input ip saddr 0.0.0.0/0 tcp dport $SSH_PORT ct state new,established accept
+    nft add rule inet filter output ip daddr 0.0.0.0/0 tcp sport $SSH_PORT ct state established accept
+    nft add rule inet filter input ip saddr 0.0.0.0/0 tcp dport {80, 443, 53} ct state new,established accept
+    nft add rule inet filter input ip saddr 0.0.0.0/0 udp dport {53} ct state new,established accept
+
 
     echo -e "${GREEN}All rules flushed, but SSH connection preserved!${ENDCOLOR}"
   else
@@ -366,6 +388,15 @@ ddos(){
     nft list ruleset > NFTABLES_CONF
 }
 
+reload_nft() {
+    echo -e "${YELLOW}Reloading nftables rules...${ENDCOLOR}"
+    if systemctl reload nftables; then
+        echo -e "${GREEN}NFTables rules reloaded successfully.${ENDCOLOR}"
+    else
+        echo -e "${RED}Failed to reload NFTables rules. Please check your configuration.${ENDCOLOR}"
+        exit 1
+    fi
+}
 
 
 while true; do
@@ -385,7 +416,7 @@ while true; do
     echo -e "${RED}7. ${ENDCOLOR} Flush Rules"                             
     echo -e "${RED}8. ${ENDCOLOR} Save Rules"                              
     echo -e "${RED}9. ${ENDCOLOR} DDOS Protection"                         
-    echo -e "${RED}10. ${ENDCOLOR} Add Port Number"                         
+    echo -e "${RED}10.${ENDCOLOR} Add Port Number"                         
     echo -e "${RED}11.${ENDCOLOR} Load Rules" 
     echo -e "${RED}12.${ENDCOLOR} Block Port" 
     echo -e "${RED}13.${ENDCOLOR} Exit"                                    
@@ -393,18 +424,18 @@ while true; do
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
 
     case $choice in
-        1) pkg_install; sleep 1; clear; wizard_nftables; service_nftables; break ;;
-        2) add_with_list_ip; sleep 1; systemctl  restart nftables; break ;;        
-        3) add_block_list_ip; sleep 1 ;systemctl restat nftables ; break;;
-        4) display_rules; break ;;                                        
-        5) add_rule; systemctl  restart nftables; break ;;                           
-        6) delete_rule; systemctl  restart nftables; break ;;                        
-        7) flush_rules; sleep 1; systemctl  restart nftables; break ;;              
-        8) save_nftables_rules; sleep 1; service_nftables; break ;;  
-        9) ddos; break ;;                                                  
-        10) add_port_user; sleep 1; systemctl  restart nftables ; break ;;              
-        11) load_rules; sleep 1; systemctl  restart nftables; break ;;
-        12) block_port_user; sleep 1 ;systemctl  restart nftables ; break;;
+        1)  pkg_install; sleep 1; clear; wizard_nftables; service_nftables; continue ;;
+        2)  add_with_list_ip; sleep 1; reload_nft; continue ;;        
+        3)  add_block_list_ip; sleep 1 ;reload_nft ; continue ;;
+        4)  display_rules; continue ;;                                        
+        5)  add_rule; reload_nft; continue ;;                           
+        6)  delete_rule; reload_nft ; continue ;;                        
+        7)  flush_rules; sleep 1; reload_nft; continue ;;              
+        8)  save_nftables_rules; sleep 1; service_nftables; continue;;  
+        9)  ddos; continue ;;                                                  
+        10) add_port_user; sleep 1; reload_nft ; continue ;;              
+        11) load_rules; sleep 1; reload_nft ;continue ;;
+        12) block_port_user; sleep 1 ;reload_nft ; continue ;;
         13) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
