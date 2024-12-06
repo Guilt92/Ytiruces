@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/usr/bin/env bash
 
 # Author:   OuTiS
 
@@ -141,6 +141,51 @@ add_with_list_ip(){
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
+
+
+add_block_list_ip(){
+    echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
+
+    read -p "$(echo -e "${BLUE}Enter the IP address to block: ${ENDCOLOR}")" USER_IP
+
+    if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
+        exit 1
+    else
+        IFS='.' read -r -a octets <<< "$USER_IP"
+        for octet in "${octets[@]}"; do
+            if ((octet < 0 || octet > 255)); then
+                echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
+                exit 1
+            fi
+        done
+    fi
+
+    echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
+    echo -e "${RED}Blocking this IP address...${ENDCOLOR}"
+
+    nft add table inet blacklist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
+    nft add set inet blacklist blacklist_set { type ipv4_addr\; flags timeout\; }
+    nft add chain inet blacklist input { type filter hook input priority 0\; }
+    nft add rule inet blacklist input ip saddr @blacklist_set drop
+
+    echo -e "${GREEN}Adding IP address $USER_IP to the block list...${ENDCOLOR}"
+    nft add element inet blacklist blacklist_set { $USER_IP }
+
+    NFTABLES_CONF="/etc/nftables.conf"
+    if [ -f $NFTABLES_CONF ]; then
+        echo -e "${GREEN}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
+        nft list ruleset > $NFTABLES_CONF
+    else
+        echo -e "${RED}File not found. Creating the file and saving configuration.${ENDCOLOR}"
+        touch $NFTABLES_CONF
+        nft list ruleset > $NFTABLES_CONF
+    fi
+
+    echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the block list.${ENDCOLOR}"
+}
+
+
 
 
 display_rules(){
@@ -333,32 +378,34 @@ while true; do
     echo "============================"
     echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable"
     echo -e "${RED}2. ${ENDCOLOR} Add With List Ip"
-    echo -e "${RED}3. ${ENDCOLOR} Display Rules"
-    echo -e "${RED}4. ${ENDCOLOR} Add Rule"
-    echo -e "${RED}5. ${ENDCOLOR} Delete Rule"
-    echo -e "${RED}6. ${ENDCOLOR} Flush Rules"                             
-    echo -e "${RED}7. ${ENDCOLOR} Save Rules"                              
-    echo -e "${RED}8. ${ENDCOLOR} DDOS Protection"                         
-    echo -e "${RED}9. ${ENDCOLOR} Add Port Number"                         
-    echo -e "${RED}10.${ENDCOLOR} Load Rules" 
-    echo -e "${RED}11. ${ENDCOLOR} Block Port" 
-    echo -e "${RED}12.${ENDCOLOR} Exit"                                    
+    echo -e "${RED}3. ${ENDCOLOR} Add Block List Ip"
+    echo -e "${RED}4. ${ENDCOLOR} Display Rules"
+    echo -e "${RED}5. ${ENDCOLOR} Add Rule"
+    echo -e "${RED}6. ${ENDCOLOR} Delete Rule"
+    echo -e "${RED}7. ${ENDCOLOR} Flush Rules"                             
+    echo -e "${RED}8. ${ENDCOLOR} Save Rules"                              
+    echo -e "${RED}9. ${ENDCOLOR} DDOS Protection"                         
+    echo -e "${RED}10. ${ENDCOLOR} Add Port Number"                         
+    echo -e "${RED}11.${ENDCOLOR} Load Rules" 
+    echo -e "${RED}12.${ENDCOLOR} Block Port" 
+    echo -e "${RED}13.${ENDCOLOR} Exit"                                    
     echo                                                                   
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
 
     case $choice in
         1) pkg_install; sleep 1; clear; wizard_nftables; service_nftables; break ;;
         2) add_with_list_ip; sleep 1; systemctl  restart nftables; break ;;        
-        3) display_rules; break ;;                                        
-        4) add_rule; systemctl  restart nftables; break ;;                           
-        5) delete_rule; systemctl  restart nftables; break ;;                        
-        6) flush_rules; sleep 1; systemctl  restart nftables; break ;;              
-        7) save_nftables_rules; sleep 1; service_nftables; break ;;  
-        8) ddos; break ;;                                                  
-        9) add_port_user; sleep 1; systemctl  restart nftables ; break ;;              
-        10) load_rules; sleep 1; systemctl  restart nftables; break ;;
-        11) block_port_user; sleep 1 ;systemctl  restart nftables ; break;;
-        12) sleep 1; clear; echo "Exiting..."; exit ;;
+        3) add_block_list_ip; sleep 1 ;systemctl restat nftables ; break;;
+        4) display_rules; break ;;                                        
+        5) add_rule; systemctl  restart nftables; break ;;                           
+        6) delete_rule; systemctl  restart nftables; break ;;                        
+        7) flush_rules; sleep 1; systemctl  restart nftables; break ;;              
+        8) save_nftables_rules; sleep 1; service_nftables; break ;;  
+        9) ddos; break ;;                                                  
+        10) add_port_user; sleep 1; systemctl  restart nftables ; break ;;              
+        11) load_rules; sleep 1; systemctl  restart nftables; break ;;
+        12) block_port_user; sleep 1 ;systemctl  restart nftables ; break;;
+        13) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
 
