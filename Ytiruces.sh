@@ -207,9 +207,26 @@ display_rules(){
     echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
      nft list ruleset
 }
-
+backup(){
+    
+if [ -f /etc/nftables.conf ]; then
+    echo -e "${GREEN}File Config nftables exists and backup config nftables ${ENDCOLOR}"
+    backup_file="/etc/nftables.conf-old"
+    if [ -f "$backup_file" ]; then
+        timestamp=$(date +%Y%m%d%H%M%S) 
+        mv "$backup_file" "/etc/nftables.conf-old.$timestamp"
+        echo -e "${YELLOW}Backup file already exists. Renamed to /etc/nftables.conf-old.$timestamp${ENDCOLOR}"
+    fi
+    
+    mv /etc/nftables.conf "$backup_file"
+    echo -e "${GREEN}Backup created: $backup_file${ENDCOLOR}"
+else
+    echo -e "${RED}File does not exist${ENDCOLOR}"
+fi
+    touch /etc/nftables.conf
+}
 wizard_nftables(){
-
+    backup
   nft list tables | grep -q 'inet filter' || nft add table inet filter
   nft add chain inet filter input { type filter hook input priority 0 \; }
   nft add chain inet filter output { type filter hook output priority 0 \; }
