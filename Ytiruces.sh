@@ -379,7 +379,7 @@ flush_all_rules() {
     echo -e "${YELLOW}All rules flushed.${ENDCOLOR}" 
     nft delete table inet whitelist 2>/dev/null
     nft delete table inet blacklist 2>/dev/null
-    wizard_nftables    
+    nftwizard
     nft add rule inet filter input ip saddr 0.0.0.0/0 tcp dport $SSH_PORT ct state new,established accept
     nft add rule inet filter output ip daddr 0.0.0.0/0 tcp sport $SSH_PORT ct state established accept
     nft add rule inet filter input ip saddr 0.0.0.0/0 tcp dport {80, 443, 53} ct state new,established accept
@@ -417,20 +417,22 @@ load_rules_file() {
 }
 
 
+
 ddos(){
-   
     nft add table inet raw
     nft add set inet raw banned_ips { type ipv4_addr \; timeout 12h \; }
-    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; } 
+    nft add set inet raw whitelist_set { type ipv4_addr \; }
+    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
     nft add rule inet raw prerouting ip saddr @banned_ips drop
     nft add rule inet raw prerouting limit rate 1000/second add @banned_ips { ip saddr }
     nft add rule inet raw prerouting ip saddr @whitelist_set accept
     nft add rule inet raw prerouting ip saddr != @whitelist_set limit rate 500/second log prefix "Potential DDoS: " level warning
     nft add rule inet raw prerouting udp limit rate 500/second burst 100 packets drop
     nft add rule inet raw prerouting tcp flags syn limit rate 50/second burst 10 drop
-    nft list ruleset > NFTABLES_CONF
-
+    nft list ruleset > /etc/nftables.conf
 }
+
+
 
 reload_nft() {
     echo -e "${YELLOW}Reloading nftables rules...${ENDCOLOR}"
@@ -448,11 +450,9 @@ while true; do
     clear  
     echo " "
     echo " "    
-    echo -e "${ORANGE}\e[5m ============================================================${ENDCOLOR}" 
-    echo -e "${ORANGE}\e[5m   ======================================== ${ENDCOLOR}"
-    echo -e "${ORANGE}\e[5m        ==============================      ${ENDCOLOR}" 
+    echo -e "${ORANGE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
     echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}" 
-    echo -e "${ORANGE}\e[5m ============================================================${ENDCOLOR}" 
+    echo -e "${ORANGE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
     echo " "
     echo "============================"
     echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable"
