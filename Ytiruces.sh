@@ -114,8 +114,7 @@ add_ip_withlist(){
         done
     fi
 
-    wizard_nftables
-
+    nftwizard
     echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
     echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
     
@@ -445,11 +444,15 @@ reload_nft() {
 
 
 while true; do
+    sleep 5
+    clear  
     echo " "
     echo " "    
-    echo -e "${ORANGE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
+    echo -e "${ORANGE}\e[5m ============================================================${ENDCOLOR}" 
+    echo -e "${ORANGE}\e[5m   ======================================== ${ENDCOLOR}"
+    echo -e "${ORANGE}\e[5m        ==============================      ${ENDCOLOR}" 
     echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}" 
-    echo -e "${ORANGE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
+    echo -e "${ORANGE}\e[5m ============================================================${ENDCOLOR}" 
     echo " "
     echo "============================"
     echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable"
