@@ -148,7 +148,7 @@ add_ip_withlist(){
     fi
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
-}
+}\  
 
 
 add_ip_block_list(){
@@ -417,21 +417,15 @@ load_rules_file() {
 }
 
 
-
 ddos(){
-    nft add table inet raw
-    nft add set inet raw banned_ips { type ipv4_addr \; timeout 12h \; }
-    nft add set inet raw whitelist_set { type ipv4_addr \; }
-    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
-    nft add rule inet raw prerouting ip saddr @banned_ips drop
-    nft add rule inet raw prerouting limit rate 1000/second add @banned_ips { ip saddr }
-    nft add rule inet raw prerouting ip saddr @whitelist_set accept
-    nft add rule inet raw prerouting ip saddr != @whitelist_set limit rate 500/second log prefix "Potential DDoS: " level warning
-    nft add rule inet raw prerouting udp limit rate 500/second burst 100 packets drop
-    nft add rule inet raw prerouting tcp flags syn limit rate 50/second burst 10 drop
-    nft list ruleset > /etc/nftables.conf
-}
-
+         nft add table inet raw 2>/dev/null
+         nft add set inet raw blacklist { type ipv4_addr\; flags timeout\; timeout 1m\; }
+         nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
+         nft add rule inet raw prerouting ip saddr @blacklist drop
+         nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute add @blacklist { ip saddr }
+         nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute add @blacklist { ip saddr }
+         nft list ruleset > /etc/nftables.conf
+    }   
 
 
 reload_nft() {
