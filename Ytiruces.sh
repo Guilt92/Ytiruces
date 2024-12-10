@@ -421,9 +421,10 @@ ddos(){
          nft add table inet raw 2>/dev/null
          nft add set inet raw blacklist { type ipv4_addr\; flags timeout\; timeout 1m\; }
          nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
-         nft add rule inet raw prerouting ip saddr @blacklist drop
+         nft add rule inet raw prerouting ip saddr @whitelist_set accept
          nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute add @blacklist { ip saddr }
          nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute add @blacklist { ip saddr }
+         nft add rule inet raw prerouting ip saddr @blacklist drop
          nft list ruleset > /etc/nftables.conf
     }   
 
