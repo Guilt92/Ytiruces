@@ -419,12 +419,20 @@ load_rules_file() {
 
 ddos(){
          nft add table inet raw 2>/dev/null
-         nft add set inet raw blacklist { type ipv4_addr\; flags timeout\; timeout 1m\; }
+         nft add set inet raw blacklist { type ipv4_addr\; flags timeout\; timeout 30m\; }
          nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
-         nft add rule inet raw prerouting ip saddr @whitelist_set accept
+         nft add chain inet raw input { type filter hook input priority -300 \; }
+         nft add chain inet raw output { type filter hook output priority -300 \; }
+         nft add rule inet raw prerouting ip saddr @whitelist_set accept         
          nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute add @blacklist { ip saddr }
          nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute add @blacklist { ip saddr }
+         nft add rule inet raw prerouting ip protocol icmp limit rate over 30/minute add @blacklist { ip saddr }
+         nft add rule inet raw prerouting ip protocol tcp ct state new limit rate over 50/minute add @blacklist { ip saddr }   
          nft add rule inet raw prerouting ip saddr @blacklist drop
+         nft add rule inet raw prerouting ip saddr @blacklist log prefix "DDoS Attack: " counter
+         nft add rule inet raw prerouting ip saddr @blacklist tcp dport { 22, 80, 443, 53 } limit rate over 10/minute add @blacklist { ip saddr }
+         nft add rule inet raw prerouting ip saddr @blacklist ct state invalid drop
+         
          nft list ruleset > /etc/nftables.conf
     }   
 
