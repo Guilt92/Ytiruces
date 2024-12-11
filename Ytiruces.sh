@@ -123,11 +123,14 @@ add_ip_withlist(){
     
     #nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
     #nft add chain inet whitelist input { type filter hook input priority -400\; }
+    
     nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; }
     nft add chain inet raw input { type filter hook input priority -500 \; }
 
     #nft add rule inet whitelist input ip saddr @whitelist_set accept
-    nft add rule inet raw prerouting ip saddr @whitelist_set accept
+    #nft add rule inet raw prerouting ip saddr @whitelist_set accept
+    nft add rule inet raw prerouting ip saddr @whitelist_set accept priority -1000
+
     
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
     SSH_PORT=${SSH_PORT:-22}
@@ -428,7 +431,8 @@ ddos(){
          nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
          nft add chain inet raw input { type filter hook input priority -300 \; }
          nft add chain inet raw output { type filter hook output priority -300 \; }
-         nft add rule inet raw prerouting ip saddr @whitelist_set accept         
+         #nft add rule inet raw prerouting ip saddr @whitelist_set accept  
+         nft add rule inet raw prerouting ip saddr @whitelist_set accept priority -1000
          nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute add @blacklist { ip saddr }
          nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute add @blacklist { ip saddr }
          nft add rule inet raw prerouting ip protocol icmp limit rate over 30/minute add @blacklist { ip saddr }
