@@ -439,6 +439,28 @@ reload_nft() {
     fi
 }
 
+forwarding() {
+    read -p "Enter the source IP (leave empty for any): " SRC_IP
+    read -p "Enter the destination IP: " DEST_IP
+    read -p "Enter the source port: " SRC_PORT
+    read -p "Enter the destination port: " DEST_PORT
+
+    if [ -z "$SRC_IP" ]; then
+        SRC_IP="0.0.0.0/0"
+    fi
+
+    nft add table inet raw 2>/dev/null
+    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; } 2>/dev/null
+    nft add chain inet raw postrouting { type filter hook postrouting priority 100 \; } 2>/dev/null
+
+    nft add rule inet raw prerouting ip saddr "$SRC_IP" tcp dport "$SRC_PORT" \
+        dnat to "$DEST_IP":"$DEST_PORT"
+
+    nft add rule inet raw postrouting ip daddr "$DEST_IP" tcp dport "$DEST_PORT" \
+        masquerade
+
+    echo -e "${GREEN}Forwarding rule created successfully! ${ENDCOLOR} "
+}
 
 while true; do
     sleep 5
