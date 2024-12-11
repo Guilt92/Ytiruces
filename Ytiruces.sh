@@ -89,7 +89,6 @@ pkg_install(){
     fi
 }
 
-
 add_ip_withlist(){
     echo -e "${YELLOW}Please enter the IP address you want to whitelist.${ENDCOLOR}"
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
@@ -120,7 +119,8 @@ add_ip_withlist(){
     
     nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
     nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
-    nft add chain inet whitelist input { type filter hook input priority 0\; }
+    nft add chain inet whitelist input { type filter hook input priority -400\; }
+
     nft add rule inet whitelist input ip saddr @whitelist_set accept
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
     SSH_PORT=${SSH_PORT:-22}
@@ -148,8 +148,7 @@ add_ip_withlist(){
     fi
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
-}\  
-
+}
 
 add_ip_block_list(){
     echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
@@ -234,7 +233,6 @@ backup_conf_nft
   nft add chain inet filter input { type filter hook input priority 0 \; }
   nft add chain inet filter output { type filter hook output priority 0 \; }
   nft add chain inet filter forward { type filter hook forward priority 0 \; }
-
   nft list tables | grep -q 'inet nat' || nft add table inet nat
   nft add chain inet nat prerouting { type nat hook prerouting priority 0\; }
   nft add chain inet nat postrouting { type nat hook postrouting priority 100\; }
