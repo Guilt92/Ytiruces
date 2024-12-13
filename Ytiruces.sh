@@ -209,16 +209,11 @@ add_ip_block_list(){
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the block list.${ENDCOLOR}"
 }
 
-
-
-
 display_rules(){
     clear 
     echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
      nft list ruleset
 }
-
-
 
 backup_conf_nft(){
     
