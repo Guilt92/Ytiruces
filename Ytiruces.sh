@@ -113,39 +113,23 @@ add_ip_withlist(){
         done
     fi
 
-    nftwizard
-    echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
-    echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
-    
-    nft add table inet whitelist || { echo -e "${RED}Failed to add table. Please check your nftables configuration.${ENDCOLOR}"; exit 1; }
+    echo -e "${YELLOW}Validating IP address: $USER_IP${ENDCOLOR}"
+
+    nft add table inet whitelist || { echo -e "${RED}Failed to add table. Exiting...${ENDCOLOR}"; exit 1; }
     nft add table inet raw 2>/dev/null
-    nft add set inet raw whitelist_set { type ipv4_addr\; flags timeout\; }
-    
-    #nft add set inet whitelist whitelist_set { type ipv4_addr\; flags timeout\; }
-    #nft add chain inet whitelist input { type filter hook input priority -400\; }
-    
-    nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; }
-    nft add chain inet raw input { type filter hook input priority -500 \; }
+    nft add set inet raw whitelist_set { type ipv4_addr\; flags timeout\; } 2>/dev/null
 
-    #nft add rule inet whitelist input ip saddr @whitelist_set accept
-    #nft add rule inet raw prerouting ip saddr @whitelist_set accept
-    nft add rule inet raw prerouting ip saddr @whitelist_set accept priority -1000
-
-    
-    SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
-    SSH_PORT=${SSH_PORT:-22}
-
-    nft add rule inet filter input ct state new,established tcp dport $SSH_PORT accept
-    nft add rule inet filter output ct state established tcp sport $SSH_PORT accept
-    nft add rule inet filter input ct state new,established tcp dport {80, 443, 53} accept
-    nft add rule inet filter input ct state new,established udp dport {53} accept
-
-    export USER_IP
-    export SSH_PORT
+    nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; } 2>/dev/null
+    nft add chain inet raw input { type filter hook input priority -500 \; } 2>/dev/null
+    nft add rule inet raw prerouting ip saddr @whitelist_set accept 2>/dev/null
 
     echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
-    nft delete element inet blacklist blacklist_set { $USER_IP }
-    nft add element inet whitelist whitelist_set { $USER_IP }
+    nft add set inet raw blacklist_set { type ipv4_addr; flags timeout; timeout 30m; } 2>/dev/null
+    nft delete element inet blacklist blacklist_set { $USER_IP } 2>/dev/null
+
+    nft add element inet raw whitelist_set { $USER_IP } 
+    export USER_IP
+    export SSH_PORT
 
     NFTABLES_CONF="/etc/nftables.conf"
     if [ -f $NFTABLES_CONF ]; then
@@ -159,6 +143,8 @@ add_ip_withlist(){
 
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
+
+
 
 add_ip_block_list(){
     echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
@@ -248,8 +234,8 @@ backup_conf_nft
   nft add chain inet nat postrouting { type nat hook postrouting priority 100\; }
 
   nft list tables | grep -q 'inet raw' || nft add table inet raw
-  nft add chain inet raw prerouting { type filter hook prerouting priority -300\; }
-  nft add chain inet raw output { type filter hook output priority -300\; }
+  nft add chain inet raw prerouting { type filter hook prerouting priority -500\; }
+  nft add chain inet raw output { type filter hook output priority -500\; }
 
   nft list tables | grep -q 'inet mangle' || nft add table inet mangle
   nft add chain inet mangle prerouting { type filter hook prerouting priority -150\; }
@@ -317,26 +303,6 @@ block_port() {
     return
   fi
 
-  # INPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp dport $PORT ct state new,established accept" | grep -oP "(?<=handle )\d+")
-  # OUTPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp sport $PORT ct state established accept" | grep -oP "(?<=handle )\d+")
-
-  # if [ -n "$INPUT_RULE_HANDLE" ]; then
-  # nft delete rule inet filter input handle $INPUT_RULE_HANDLE
-  #  echo -e "${GREEN}Input rule for port $PORT has been successfully deleted.${ENDCOLOR}"
-  # else
-  #  echo -e "${RED}No input rule found for port $PORT in the whitelist.${ENDCOLOR}"
-  # fi
-
-  #if [ -n "$OUTPUT_RULE_HANDLE" ]; then
-  # nft delete rule inet filter output handle $OUTPUT_RULE_HANDLE
-  # echo -e "${GREEN}Output rule for port $PORT has been successfully deleted.${ENDCOLOR}"
-  # else
-  # echo -e "${RED}No output rule found for port $PORT in the whitelist.${ENDCOLOR}"
-  # fi
-  #
-  #
-  # nft add rule inet filter input tcp dport $PORT drop
-  # nft add rule inet filter output tcp sport $PORT drop
 
    nft insert rule inet filter input position 0 tcp dport $PORT  drop
    nft insert rule inet filter output position 0 tcp dport $PORT  drop
