@@ -94,6 +94,8 @@ add_ip_withlist(){
     echo -e "${YELLOW}Note: This should be the same IP address you are using to SSH into the server.${ENDCOLOR}"
 
     read -p "$(echo -e "${BLUE}Enter your IP address: ${ENDCOLOR}")" USER_IP
+    echo -e "${GREEN}User IP entered: $USER_IP ${ENDCOLOR}"
+
 
     if [[ -z "$USER_IP" ]]; then
         echo -e "${RED}Error: No IP entered. Exiting...${ENDCOLOR}"
@@ -113,29 +115,45 @@ add_ip_withlist(){
         done
     fi
 
-    echo -e "${YELLOW}Validating IP address: $USER_IP${ENDCOLOR}"
+    nftwizard
+    echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
+    echo -e "${YELLOW}Please ensure this is the IP you used to SSH into the server.${ENDCOLOR}"
+    
+    nft list tables | grep -q 'inet raw' || nft add table inet raw || { echo -e "${RED}Failed to add table raw. Exiting...${ENDCOLOR}"; exit 1; }
+    nft list set inet raw whitelist_set | grep -q 'whitelist_set' || nft add set inet raw whitelist_set { type ipv4_addr\; flags timeout\;} || { echo -e "${RED}Failed to add set whitelist_set. Exiting...${ENDCOLOR}"; exit 1; }
 
-    nft add table inet whitelist || { echo -e "${RED}Failed to add table. Exiting...${ENDCOLOR}"; exit 1; }
-    nft add table inet raw 2>/dev/null
-    nft add set inet raw whitelist_set { type ipv4_addr\; flags timeout\; } 2>/dev/null
+    nft add chain inet whitelist input { type filter hook input priority -100\; }
+    nft add rule inet whitelist input ip saddr @whitelist_set accept
+    
+    nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; }
+    nft add chain inet raw input { type filter hook input priority -500 \; }
 
-    nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; } 2>/dev/null
-    nft add chain inet raw input { type filter hook input priority -500 \; } 2>/dev/null
-    nft add rule inet raw prerouting ip saddr @whitelist_set accept 2>/dev/null
+    nft add rule inet raw prerouting ip saddr @whitelist_set accept
+    nft add rule inet raw input ip saddr @whitelist_set accept
 
-    echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
-    nft add set inet raw blacklist_set { type ipv4_addr; flags timeout; timeout 30m; } 2>/dev/null
-    nft delete element inet blacklist blacklist_set { $USER_IP } 2>/dev/null
 
-    nft add element inet raw whitelist_set { $USER_IP } 
+    SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
+    SSH_PORT=${SSH_PORT:-22}
+
+    nft add rule inet filter input ct state new,established tcp dport $SSH_PORT accept
+    nft add rule inet filter output ct state established tcp sport $SSH_PORT accept
+    nft add rule inet filter input ct state new,established tcp dport {80, 443, 53} accept
+    nft add rule inet filter input ct state new,established udp dport {53} accept
+
     export USER_IP
     export SSH_PORT
+
+    echo -e "${GREEN}Adding IP address $USER_IP to the whitelist...${ENDCOLOR}"
+    nft delete element inet blacklist blacklist_set { $USER_IP }
+    nft add element inet raw whitelist_set { $USER_IP }
+
 
     NFTABLES_CONF="/etc/nftables.conf"
     if [ -f $NFTABLES_CONF ]; then
         echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
         nft list ruleset > $NFTABLES_CONF
     else
+
         echo -e "${RED}File not found. Creating the file and saving configuration.${ENDCOLOR}"
         touch $NFTABLES_CONF
         nft list ruleset > $NFTABLES_CONF
@@ -144,8 +162,6 @@ add_ip_withlist(){
     echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
 
-
-
 add_ip_block_list(){
     echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
 
@@ -153,8 +169,8 @@ add_ip_block_list(){
 
     if [[ -z "$USER_IP" ]]; then
         echo -e "${RED} No Ip Entered. EXiting ....  ${ENDCOLOR}"
-        exit 1 
-    fi 
+        exit 1
+    fi
 
     if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
         echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
@@ -229,6 +245,7 @@ backup_conf_nft
   nft add chain inet filter input { type filter hook input priority 0 \; }
   nft add chain inet filter output { type filter hook output priority 0 \; }
   nft add chain inet filter forward { type filter hook forward priority 0 \; }
+  
   nft list tables | grep -q 'inet nat' || nft add table inet nat
   nft add chain inet nat prerouting { type nat hook prerouting priority 0\; }
   nft add chain inet nat postrouting { type nat hook postrouting priority 100\; }
@@ -343,7 +360,7 @@ flush_all_rules() {
   BACKUP_FILE="/etc/nftables.conf.backup"
   nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
 
-  read -p "${BLUE}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
+  read -p "${RED}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
   if [[ "$confirm" == "y" ]]; then
     
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
@@ -397,12 +414,15 @@ ddos(){
          nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
          nft add chain inet raw input { type filter hook input priority -300 \; }
          nft add chain inet raw output { type filter hook output priority -300 \; }
-         #nft add rule inet raw prerouting ip saddr @whitelist_set accept  
-         nft add rule inet raw prerouting ip saddr @whitelist_set accept priority -1000
-         nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute add @blacklist { ip saddr }
-         nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute add @blacklist { ip saddr }
-         nft add rule inet raw prerouting ip protocol icmp limit rate over 30/minute add @blacklist { ip saddr }
-         nft add rule inet raw prerouting ip protocol tcp ct state new limit rate over 50/minute add @blacklist { ip saddr }   
+
+         nft add rule inet raw prerouting ip saddr @whitelist_set accept         
+         
+        nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute add @blacklist { ip saddr } meta not iifname @whitelist_set
+        nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute add @blacklist { ip saddr } meta not iifname @whitelist_set
+        nft add rule inet raw prerouting ip protocol icmp limit rate over 30/minute add @blacklist { ip saddr } meta not iifname @whitelist_set
+        nft add rule inet raw prerouting ip protocol tcp ct state new limit rate over 50/minute add @blacklist { ip saddr } meta not iifname @whitelist_set
+ 
+
          nft add rule inet raw prerouting ip saddr @blacklist drop
          nft add rule inet raw prerouting ip saddr @blacklist log prefix "DDoS Attack: " counter
          nft add rule inet raw prerouting ip saddr @blacklist tcp dport { 22, 80, 443, 53 } limit rate over 10/minute add @blacklist { ip saddr }
