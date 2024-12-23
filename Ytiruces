@@ -12,13 +12,14 @@ YELLOW=$(echo -ne '\033[0;33m')
 
 check_user_root(){
     if [ "$EUID" -ne 0 ]; then 
+        echo -e ""
         echo -e "${RED}This script must be run as root. Please switch to the root user and try again.${ENDCOLOR}"
         exit 1
     fi
 }
 clear
 check_user_root
-sleep .5;
+sleep 1;
 
 detect_distribution() {
     check_user_root
@@ -140,19 +141,6 @@ add_ip_withlist(){
     nft delete element inet filter blacklist_set { $USER_IP }
     nft add element inet raw whitelist_set { $USER_IP }
 
-
-    NFTABLES_CONF="/etc/nftables.conf"
-    if [ -f $NFTABLES_CONF ]; then
-        echo -e "${YELLOW}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
-        nft list ruleset > $NFTABLES_CONF
-    else
-
-        echo -e "${RED}File not found. Creating the file and saving configuration.${ENDCOLOR}"
-        touch $NFTABLES_CONF
-        nft list ruleset > $NFTABLES_CONF
-    fi
-
-    echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the whitelist.${ENDCOLOR}"
 }
 
 add_ip_block_list(){
@@ -187,17 +175,7 @@ add_ip_block_list(){
 
     echo -e "${GREEN}Adding IP address $USER_IP to the block list...${ENDCOLOR}"
     nft add element inet filter blacklist_set { $USER_IP }    
-    NFTABLES_CONF="/etc/nftables.conf"
-    if [ -f $NFTABLES_CONF ]; then
-        echo -e "${GREEN}Saving configuration to $NFTABLES_CONF...${ENDCOLOR}"
-        nft list ruleset > $NFTABLES_CONF
-    else
-        echo -e "${RED}File not found. Creating the file and saving configuration.${ENDCOLOR}"
-        touch $NFTABLES_CONF
-        nft list ruleset > $NFTABLES_CONF
-    fi
 
-    echo -e "${GREEN}Configuration completed successfully! IP address $USER_IP has been added to the block list.${ENDCOLOR}"
 }
 
 display_rules(){
@@ -368,20 +346,7 @@ flush_all_rules() {
 }
 
 
-save_nftables_rules() {
-    local RULES_FILE="/etc/nftables.conf"
-    echo -e "${BLUE}Rules will be saved to: $RULES_FILE${ENDCOLOR}"
-     nft list ruleset > $RULES_FILE
-    echo -e "${ORANGE}Rules saved to $RULES_FILE${ENDCOLOR}"
-    echo -e "${BLUE}Enabling nftables service for automatic rule loading after reboot...${ENDCOLOR}"
-     systemctl enable nftables
-    echo -e "${BLUE}Checking nftables service status...${ENDCOLOR}"
-     systemctl status nftables --no-pager
-    echo -e "${BLUE}To manually load the rules from the saved file, use the following command:${ENDCOLOR}"
-    echo -e "${GREEN} nft -f $RULES_FILE${ENDCOLOR}"
-}
-
-load_rules_file() {
+load_conf_nftable() {
     read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
     if [[ -f $filename ]]; then
          nft -f $filename
@@ -420,23 +385,28 @@ reload_nft() {
 }
 
 forwarding() {
-    read -p "Enter the source IP (leave empty for any): " SRC_IP
-    read -p "Enter the destination IP: " DEST_IP
-    read -p "Enter the source port: " SRC_PORT
-    read -p "Enter the destination port: " DEST_PORT
+  read -p "$(echo -e "${YELLOW}Enter the destination IP: ${ENDCOLOR}")" DEST_IP
+  read -p "$(echo -e "${YELLOW}Enter the destination port: ${ENDCOLOR}")" DEST_PORT
+  read -p "$(echo -e "${YELLOW}Enter the source port (leave empty for any): ${ENDCOLOR}")" SRC_PORT 
+  
+  if [ -z "$SRC_PORT" ]; then
+    SRC_PORT="any"
+  fi
 
-    if [ -z "$SRC_IP" ]; then
-        SRC_IP="0.0.0.0/0"
-    fi
+  if [ -z "$DEST_IP" ] || [ -z "$DEST_PORT" ]; then
+    echo -e "${RED}Destination IP and port are required.${ENDCOLOR}"
+    return 1
+  fi
 
-    nft add table inet raw 2>/dev/null
-    nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; } 2>/dev/null
-    nft add chain inet raw postrouting { type filter hook postrouting priority 100 \; } 2>/dev/null
-    nft add rule inet raw prerouting ip saddr "$SRC_IP" tcp dport "$SRC_PORT" \
-        dnat to "$DEST_IP":"$DEST_PORT"
-    nft add rule inet raw postrouting ip daddr "$DEST_IP" tcp dport "$DEST_PORT" \
-        masquerade
-    echo -e "${GREEN}Forwarding rule created successfully! ${ENDCOLOR} "
+  nft add table inet raw 2>/dev/null
+  nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; }
+  nft add chain inet raw postrouting { type filter hook postrouting priority 100 \; } 2>/dev/null
+
+  nft add rule inet raw prerouting ip saddr 0.0.0.0/0 tcp dport "$SRC_PORT" dnat to "$DEST_IP":"$DEST_PORT"
+
+  nft add rule inet raw postrouting ip daddr "$DEST_IP" tcp dport "$DEST_PORT" masquerade
+
+  echo -e "${GREEN}Forwarding rule created successfully! ${ENDCOLOR} "
 }
 
 while true; do
@@ -445,7 +415,8 @@ while true; do
     echo " "
     echo " "    
     echo -e "${ORANGE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
-    echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}" 
+    echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}"
+    echo -e "              ${GREEN} https://github.com/Niihil/Ytiruces/  ${ENDCOLOR}"
     echo -e "${ORANGE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
     echo " "
     echo "============================"
@@ -458,9 +429,9 @@ while true; do
     echo -e "${RED}7. ${ENDCOLOR} Flush All Rules"                             
     echo -e "${RED}8. ${ENDCOLOR} Save Rules"                              
     echo -e "${RED}9. ${ENDCOLOR} DDOS Protection"                         
-    echo -e "${RED}10.${ENDCOLOR} Add WithList Port"                         
-    echo -e "${RED}11.${ENDCOLOR} Load Rules File" 
-    echo -e "${RED}12.${ENDCOLOR} Block Port" 
+    echo -e "${RED}10.${ENDCOLOR} Add Port"                         
+    echo -e "${RED}11.${ENDCOLOR} Block Port" 
+    echo -e "${RED}12.${ENDCOLOR} Load Conf File" 
     echo -e "${RED}13.${ENDCOLOR} Exit"                                    
     echo                                                                   
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
@@ -476,8 +447,8 @@ while true; do
         8)  save_nftables_rules; sleep 1; service_nftables; continue;;  
         9)  ddos; continue ;;                                                  
         10) add_port_withlist; sleep 1; reload_nft ; continue ;;              
-        11) load_rules_file; sleep 1; reload_nft ;continue ;;
-        12) block_port; sleep 1 ;reload_nft ; continue ;;
+        11) block_port; sleep 1; reload_nft ;continue ;;
+        12) load_conf_nftable; sleep 1 ;reload_nft ; continue ;;
         13) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
