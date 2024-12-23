@@ -122,12 +122,10 @@ add_ip_withlist(){
     nft list tables | grep -q 'inet raw' || nft add table inet raw || { echo -e "${RED}Failed to add table raw. Exiting...${ENDCOLOR}"; exit 1; }
     nft list set inet raw whitelist_set 2>/dev/null || nft add set inet raw whitelist_set { type ipv4_addr\; flags timeout\;} || { echo -e "${RED}Failed to add set whitelist_set. Exiting...${ENDCOLOR}"; exit 1; }
     
-    #nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; }
-    #nft add chain inet raw input { type filter hook input priority -500 \; }
-    nft list chain inet raw prerouting 2>/dev/null || nft add chain inet raw prerouting { type filter hook prerouting priority -500\; }
+    #nft list chain inet raw prerouting 2>/dev/null || nft add chain inet raw prerouting { type filter hook prerouting priority -500\; }
 
-    nft add rule inet raw prerouting ip saddr @whitelist_set accept
-    nft add rule inet raw input ip saddr @whitelist_set accept
+    #nft add rule inet raw prerouting ip saddr @whitelist_set accept
+    #nft add rule inet raw input ip saddr @whitelist_set accept
 
 
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
@@ -418,9 +416,9 @@ ddos(){
     #nft add chain inet raw input { type filter hook input priority -300 \; }
     #nft add chain inet raw output { type filter hook output priority -300 \; }
     
-    nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -300 \; }
-    nft list chain inet raw input >/dev/null 2>&1 || nft add chain inet raw input { type filter hook input priority -300 \; }
-    nft list chain inet raw output >/dev/null 2>&1 || nft add chain inet raw output { type filter hook output priority -300 \; }
+    nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; }
+    nft list chain inet raw input >/dev/null 2>&1 || nft add chain inet raw input { type filter hook input priority -500 \; }
+    nft list chain inet raw output >/dev/null 2>&1 || nft add chain inet raw output { type filter hook output priority -500 \; }
 
     nft insert rule inet raw prerouting ip saddr @whitelist_set accept
 
@@ -431,10 +429,9 @@ ddos(){
     nft add rule inet raw prerouting ip protocol tcp ct state new limit rate over 50/minute ip saddr != @whitelist_set add @blacklist { ip saddr }
 
     nft add rule inet raw prerouting ip saddr @blacklist drop
-    nft add rule inet raw prerouting ip saddr @blacklist log prefix "DDoS Attack: " counter
 
-    nft add rule inet raw prerouting ip saddr @blacklist tcp dport { 22, 80, 443, 53 } limit rate over 10/minute add @blacklist { ip saddr }
-    nft add rule inet raw prerouting ip saddr @blacklist ct state invalid drop
+    #nft add rule inet raw prerouting ip saddr @blacklist tcp dport { 22, 80, 443, 53 } limit rate over 10/minute add @blacklist { ip saddr }
+    #nft add rule inet raw prerouting ip saddr @blacklist ct state invalid drop
          
     nft list ruleset > /etc/nftables.conf
     }   
