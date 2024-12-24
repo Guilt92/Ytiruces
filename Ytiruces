@@ -185,42 +185,40 @@ display_rules(){
 }
 
 backup_conf_nft(){
+config_file="/etc/nftables.conf"
+
+if [ -f "$config_file" ]; then
+    echo -e "${GREEN}Config file exists: $config_file${ENDCOLOR}"
     
-if [ -f /etc/nftables.conf ]; then
-    echo -e "${GREEN}File Config nftables exists and backup config nftables ${ENDCOLOR}"
-    backup_file="/etc/nftables.conf-old"
-    if [ -f "$backup_file" ]; then
-        timestamp=$(date +%Y%m%d%H%M%S) 
-        mv "$backup_file" "/etc/nftables.conf-old.$timestamp"
-        echo -e "${YELLOW}Backup file already exists. Renamed to /etc/nftables.conf-old.$timestamp${ENDCOLOR}"
-    fi
+    timestamp=$(date +%Y%m%d%H%M%S)
+    backup_file="/etc/nftables.conf-backup-$timestamp"
     
-    mv /etc/nftables.conf "$backup_file"
-    echo -e "${GREEN}Backup created: $backup_file${ENDCOLOR}"
+    cp "$config_file" "$backup_file"
+    echo -e "${GREEN}Backup created at: $backup_file${ENDCOLOR}"
 else
-    echo -e "${RED}File does not exist${ENDCOLOR}"
+    echo -e "${RED}Config file does not exist: $config_file${ENDCOLOR}"
 fi
-    touch /etc/nftables.conf
+
 }
 
 nftwizard(){
-backup_conf_nft
-  nft list tables | grep -q 'inet filter' || nft add table inet filter
-  nft add chain inet filter input { type filter hook input priority 0 \; }
-  nft add chain inet filter output { type filter hook output priority 0 \; }
-  nft add chain inet filter forward { type filter hook forward priority 0 \; }
+    backup_conf_nft
+    nft list tables | grep -q 'inet filter' || nft add table inet filter 2>/dev/null
+    nft add chain inet filter input { type filter hook input priority 0 \; } 2>/dev/null
+    nft add chain inet filter output { type filter hook output priority 0 \; } 2>/dev/null
+    nft add chain inet filter forward { type filter hook forward priority 0 \; } 2>/dev/null
   
-  nft list tables | grep -q 'inet nat' || nft add table inet nat
-  nft add chain inet nat prerouting { type nat hook prerouting priority 0\; }
-  nft add chain inet nat postrouting { type nat hook postrouting priority 100\; }
+    nft list tables | grep -q 'inet nat' || nft add table inet nat 2>/dev/null
+    nft add chain inet nat prerouting { type nat hook prerouting priority 0\; } 2>/dev/null
+    nft add chain inet nat postrouting { type nat hook postrouting priority 100\; } 2>/dev/null
 
-  nft list tables | grep -q 'inet raw' || nft add table inet raw
-  nft add chain inet raw prerouting { type filter hook prerouting priority -500\; }
-  nft add chain inet raw output { type filter hook output priority -500\; }
+    nft list tables | grep -q 'inet raw' || nft add table inet raw 2>/dev/null
+    nft add chain inet raw prerouting { type filter hook prerouting priority -500\; } 2>/dev/null
+    nft add chain inet raw output { type filter hook output priority -500\; } 2>/dev/null 
 
-  nft list tables | grep -q 'inet mangle' || nft add table inet mangle
-  nft add chain inet mangle prerouting { type filter hook prerouting priority -150\; }
-  nft add chain inet mangle postrouting { type filter hook postrouting priority -150\; }
+    nft list tables | grep -q 'inet mangle' || nft add table inet mangle 2>/dev/null 
+    nft add chain inet mangle prerouting { type filter hook prerouting priority -150\; } 2>/dev/null
+    nft add chain inet mangle postrouting { type filter hook postrouting priority -150\; } 2>/dev/null
 
   echo -e "${GREEN}All chains & table successfully created!${ENDCOLOR}"
 }
@@ -255,23 +253,9 @@ add_port_withlist() {
     echo -e "${RED}Error: No $PORT entered. Exiting...${ENDCOLOR}"
     exit 1
   fi
-
-  #if nft -a list ruleset | grep -q "tcp dport $PORT ct state new,established accept"; then
-  #  echo -e "${BLUE}Port $PORT is already in the whitelist.${ENDCOLOR}"
-  #  return
-  # fi
-  # nft add rule inet filter input tcp dport $PORT ct state new,established accept
-  # nft add rule inet filter output tcp sport $PORT ct state established accept
- 
   nft insert rule inet filter input position 0 tcp dport $PORT  accept
   nft insert rule inet filter output position 0 tcp dport $PORT  accept
-
-  # INPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp dport $PORT ct state new,established accept" | grep -oP "(?<=handle )\d+")
-  # OUTPUT_RULE_HANDLE=$(nft list ruleset | grep -i "tcp sport $PORT ct state established accept" | grep -oP "(?<=handle )\d+")
-
   echo -e "${GREEN}Port $PORT has been successfully added to the whitelist.${ENDCOLOR}"
- # echo "Input rule handle: $INPUT_RULE_HANDLE"
- # echo "Output rule handle: $OUTPUT_RULE_HANDLE"
 
 }
 
@@ -427,7 +411,7 @@ while true; do
     echo -e "${RED}5. ${ENDCOLOR} Add Rule"
     echo -e "${RED}6. ${ENDCOLOR} Delete Rule"
     echo -e "${RED}7. ${ENDCOLOR} Flush All Rules"                             
-    echo -e "${RED}8. ${ENDCOLOR} Save Rules"                              
+    echo -e "${RED}8. ${ENDCOLOR} Save Config File"                              
     echo -e "${RED}9. ${ENDCOLOR} DDOS Protection"                         
     echo -e "${RED}10.${ENDCOLOR} Add Port"                         
     echo -e "${RED}11.${ENDCOLOR} Block Port" 
@@ -444,7 +428,7 @@ while true; do
         5)  add_rule ; continue ;;                           
         6)  delete_rule ; continue ;;                        
         7)  flush_all_rules ; sleep 1 ; continue ;;              
-        8)  save_nftables_rules; sleep 1; service_nftables; continue;;  
+        8)  backup_conf_nft; sleep 1; service_nftables; continue;;  
         9)  ddos; continue ;;                                                  
         10) add_port_withlist; sleep 1; reload_nft ; continue ;;              
         11) block_port; sleep 1; reload_nft ;continue ;;
