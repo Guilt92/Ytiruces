@@ -2,12 +2,17 @@
 
 # Author:   OuTiS
 
-ORANGE=$(echo -ne '\e[38;5;214m')
-BLUE=$(echo -ne '\e[94m')
-RED=$(echo -ne '\e[31m')
-GREEN=$(echo -ne '\e[32m')
-ENDCOLOR=$(echo -ne '\e[0m')
-YELLOW=$(echo -ne '\033[0;33m')
+
+ORANGE=$(echo -ne '\e[38;5;214m')  
+BLUE=$(echo -ne '\e[94m')           
+RED=$(echo -ne '\e[31m')            
+GREEN=$(echo -ne '\e[32m')          
+ENDCOLOR=$(echo -ne '\e[0m')        
+YELLOW=$(echo -ne '\033[0;33m')     
+CYAN=$(echo -ne '\e[36m')           
+MAGENTA=$(echo -ne '\e[35m')        
+PURPLE=$(echo -ne '\e[38;5;129m')   
+WHITE=$(echo -ne '\e[97m') 
 
 
 check_user_root(){
@@ -391,34 +396,34 @@ forwarding() {
 
   echo -e "${GREEN}Forwarding rule created successfully! ${ENDCOLOR} "
 }
-
+    
 while true; do
-    sleep 2
-    clear  
+    
+    clear
     echo " "
-    echo " "    
-    echo -e "${ORANGE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}" 
+    echo " "
+    echo -e "${BLUE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
     echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}"
-    echo -e "              ${GREEN} https://github.com/Niihil/Ytiruces/  ${ENDCOLOR}"
-    echo -e "${ORANGE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}" 
+    echo -e "              ${CYAN} https://github.com/Niihil/Ytiruces/  ${ENDCOLOR}"
+    echo -e "${BLUE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
     echo " "
-    echo "============================"
-    echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable"
-    echo -e "${RED}2. ${ENDCOLOR} Add Ip WithList"
-    echo -e "${RED}3. ${ENDCOLOR} Add Block List Ip"
-    echo -e "${RED}4. ${ENDCOLOR} Display Rules"
-    echo -e "${RED}5. ${ENDCOLOR} Add Rule"
-    echo -e "${RED}6. ${ENDCOLOR} Delete Rule"
-    echo -e "${RED}7. ${ENDCOLOR} Flush All Rules"                             
-    echo -e "${RED}8. ${ENDCOLOR} Save Config File"                              
-    echo -e "${RED}9. ${ENDCOLOR} DDOS Protection"                         
-    echo -e "${RED}10.${ENDCOLOR} Add Port"                         
-    echo -e "${RED}11.${ENDCOLOR} Block Port" 
-    echo -e "${RED}12.${ENDCOLOR} Load Conf File" 
-    echo -e "${RED}13.${ENDCOLOR} Exit"                                    
-    echo                                                                   
+    echo -e  "${RED}============================ ${ENDCOLOR}"
+    echo -e "" 
+    echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable${ENDCOLOR}"
+    echo -e "${RED}2. ${ENDCOLOR} Add Ip WithList${ENDCOLOR}"
+    echo -e "${RED}3. ${ENDCOLOR} Add Block List Ip${ENDCOLOR}"
+    echo -e "${RED}4. ${ENDCOLOR} Display Rules${ENDCOLOR}"
+    echo -e "${RED}5. ${ENDCOLOR} Add Rule${ENDCOLOR}"
+    echo -e "${RED}6. ${ENDCOLOR} Delete Rule${ENDCOLOR}"
+    echo -e "${RED}7. ${ENDCOLOR} Flush All Rules${ENDCOLOR}"
+    echo -e "${RED}8. ${ENDCOLOR} Save Config File${ENDCOLOR}"
+    echo -e "${RED}9. ${ENDCOLOR} DDOS Protection${ENDCOLOR}"
+    echo -e "${RED}10.${ENDCOLOR} Add Port${ENDCOLOR}"
+    echo -e "${RED}11.${ENDCOLOR} Block Port${ENDCOLOR}"
+    echo -e "${RED}12.${ENDCOLOR} Load Conf File${ENDCOLOR}"
+    echo -e "${RED}13.${ENDCOLOR} Exit${ENDCOLOR}"
+    echo " "
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
-
     case $choice in
         1)  pkg_install ; service_nftables ; sleep 1; clear; nftwizard; reload_nft ; continue ;;
         2)  add_ip_withlist; sleep 1; continue ;;        
