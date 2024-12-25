@@ -412,19 +412,22 @@ while true; do
     echo -e  "${RED}============================ ${ENDCOLOR}"
     echo -e "" 
     echo -e "${RED}1. ${ENDCOLOR} Wizard Nftable${ENDCOLOR}"
-    echo -e "${RED}2. ${ENDCOLOR} Add Ip WithList${ENDCOLOR}"
-    echo -e "${RED}3. ${ENDCOLOR} Add Block List Ip${ENDCOLOR}"
+    echo -e "${RED}2. ${ENDCOLOR} WithList Ip ${ENDCOLOR}"
+    echo -e "${RED}3. ${ENDCOLOR} Block Ip${ENDCOLOR}"
     echo -e "${RED}4. ${ENDCOLOR} Display Rules${ENDCOLOR}"
     echo -e "${RED}5. ${ENDCOLOR} Add Rule${ENDCOLOR}"
     echo -e "${RED}6. ${ENDCOLOR} Delete Rule${ENDCOLOR}"
     echo -e "${RED}7. ${ENDCOLOR} Flush All Rules${ENDCOLOR}"
     echo -e "${RED}8. ${ENDCOLOR} Save Config File${ENDCOLOR}"
     echo -e "${RED}9. ${ENDCOLOR} DDOS Protection${ENDCOLOR}"
-    echo -e "${RED}10.${ENDCOLOR} Add Port${ENDCOLOR}"
+    echo -e "${RED}10.${ENDCOLOR} Open Port${ENDCOLOR}"
     echo -e "${RED}11.${ENDCOLOR} Block Port${ENDCOLOR}"
     echo -e "${RED}12.${ENDCOLOR} Load Conf File${ENDCOLOR}"
-    echo -e "${RED}13.${ENDCOLOR} Exit${ENDCOLOR}"
-    echo " "
+    echo -e "${RED}13.${ENDCOLOR} Forwarding${ENDCOLOR}"
+    echo -e "${RED}14.${ENDCOLOR} Exit${ENDCOLOR}"
+    echo -e " "
+    echo -e  "${RED}============================ ${ENDCOLOR}" 
+    echo -e " "
     read -p "$(echo -e "${BLUE}Please enter your choice: ${ENDCOLOR}")" choice
     case $choice in
         1)  pkg_install ; service_nftables ; sleep 1; clear; nftwizard; reload_nft ; continue ;;
@@ -438,8 +441,9 @@ while true; do
         9)  ddos; continue ;;                                                  
         10) add_port_withlist; sleep 1; reload_nft ; continue ;;              
         11) block_port; sleep 1; reload_nft ;continue ;;
-        12) load_conf_nftable; sleep 1 ;reload_nft ; continue ;;
-        13) sleep 1; clear; echo "Exiting..."; exit ;;
+        12)load_conf_nftable; sleep 1 ;reload_nft ; continue ;;
+        12) forwarding ; sleep 1 ; continue ;;
+        14) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
 
