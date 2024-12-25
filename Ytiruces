@@ -442,7 +442,7 @@ while true; do
         10) add_port_withlist; sleep 1; reload_nft ; continue ;;              
         11) block_port; sleep 1; reload_nft ;continue ;;
         12)load_conf_nftable; sleep 1 ;reload_nft ; continue ;;
-        12) forwarding ; sleep 1 ; continue ;;
+        13) forwarding ; sleep 1 ; continue ;;
         14) sleep 1; clear; echo "Exiting..."; exit ;;
         *) echo -e "${RED}Invalid option, please try again.${ENDCOLOR}" ;;
     esac
