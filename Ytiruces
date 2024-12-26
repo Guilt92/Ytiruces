@@ -375,30 +375,41 @@ reload_nft() {
 }
 
 forwarding() {
-  read -p "$(echo -e "${YELLOW}Enter the destination IP: ${ENDCOLOR}")" DEST_IP
-  read -p "$(echo -e "${YELLOW}Enter the destination port: ${ENDCOLOR}")" DEST_PORT
-  read -p "$(echo -e "${YELLOW}Enter the source port (leave empty for any): ${ENDCOLOR}")" SRC_PORT 
-  
-  if [ -z "$SRC_PORT" ]; then
-    SRC_PORT="any"
-  fi
-
-  if [ -z "$DEST_IP" ] || [ -z "$DEST_PORT" ]; then
-    echo -e "${RED}Destination IP and port are required.${ENDCOLOR}"
-    return 1
-  fi
-
-  nft add table inet raw 2>/dev/null
-  nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; } 2>/dev/null
-  nft add chain inet raw postrouting { type filter hook postrouting priority 100 \; } 2>/dev/null
-
-  nft add rule inet raw prerouting ip saddr 0.0.0.0/0 tcp dport "$SRC_PORT" dnat to "$DEST_IP":"$DEST_PORT"
-
-  nft add rule inet raw postrouting ip daddr "$DEST_IP" tcp dport "$DEST_PORT" masquerade
-
-  echo -e "${GREEN}Forwarding rule created successfully! ${ENDCOLOR} "
-}
+    read -p "$(echo -e "${YELLOW}Enter the destination IP: ${ENDCOLOR}")" DEST_IP
     
+    read -p "$(echo -e "${YELLOW}Enter the destination port: ${ENDCOLOR}")" DEST_PORT
+    
+    read -p "$(echo -e "${YELLOW}Enter the source port (leave empty for any): ${ENDCOLOR}")" SRC_PORT
+    
+    if [ -z "$SRC_PORT" ]; then
+        SRC_PORT="any"
+    fi
+    
+    if [ -z "$DEST_IP" ] || [ -z "$DEST_PORT" ]; then
+        echo -e "${RED}Destination IP and port are required.${ENDCOLOR}"
+        return 1
+    fi
+    
+    nft add table inet raw 2>/dev/null
+    nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; } 2>/dev/null
+    nft add chain inet raw postrouting { type filter hook postrouting priority 100 \; } 2>/dev/null
+    
+    if [ "$SRC_PORT" == "any" ] && [ -z "$DEST_PORT" ]; then
+        nft add rule inet raw prerouting ip saddr "$SRC_IP" dnat to "$DEST_IP"
+        nft add rule inet raw postrouting ip daddr "$DEST_IP" masquerade
+        echo -e "${GREEN}All traffic forwarded to $DEST_IP successfully! ${ENDCOLOR}"
+    elif [ -n "$SRC_PORT" ] && [ -n "$DEST_PORT" ]; then
+        nft add rule inet raw prerouting ip saddr "$SRC_IP" tcp dport "$SRC_PORT" dnat to "$DEST_IP":"$DEST_PORT"
+        nft add rule inet raw postrouting ip daddr "$DEST_IP" tcp dport "$DEST_PORT" masquerade
+        echo -e "${GREEN}Traffic forwarded to $DEST_IP:$DEST_PORT successfully! ${ENDCOLOR}"
+
+    else
+        echo -e "${RED}Please specify both source and destination ports or leave both blank to forward all traffic.${ENDCOLOR}"
+    fi
+}
+
+
+
 while true; do
     
     clear
