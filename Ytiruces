@@ -184,7 +184,7 @@ add_ip_block_list(){
 
 display_rules(){
     clear 
-    echo -e " ${RED}Display Rules. Clear Page After 5 Time... ${ENDCOLOR} "
+    echo -e "${RED}\e[5mDisplay Rules. Clear Page After 5 Time...${ENDCOLOR}"
     echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
      nft list ruleset
      sleep 5 
@@ -311,8 +311,9 @@ delete_rule() {
 flush_all_rules() {
   BACKUP_FILE="/etc/nftables.conf.backup"
   nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
-
-  read -p "${RED}Are you sure you want to flush all rules? (y/n): ${ENDCOLOR}" confirm
+  clear 
+  sleep 1 
+  read -p "${RED}Are You Sure You Want To Flush All Rules? (y/n): ${ENDCOLOR}" confirm
   if [[ "$confirm" == "y" ]]; then
     
     SSH_PORT=$(grep -E '^Port ' /etc/ssh/sshd_config | awk '{print $2}')
@@ -376,38 +377,37 @@ reload_nft() {
 
 forwarding() {
     read -p "$(echo -e "${YELLOW}Enter the destination IP: ${ENDCOLOR}")" DEST_IP
-    
-    read -p "$(echo -e "${YELLOW}Enter the destination port: ${ENDCOLOR}")" DEST_PORT
-    
+    read -p "$(echo -e "${YELLOW}Enter the destination port (leave empty for any): ${ENDCOLOR}")" DEST_PORT
     read -p "$(echo -e "${YELLOW}Enter the source port (leave empty for any): ${ENDCOLOR}")" SRC_PORT
-    
-    if [ -z "$SRC_PORT" ]; then
-        SRC_PORT="any"
-    fi
-    
-    if [ -z "$DEST_IP" ] || [ -z "$DEST_PORT" ]; then
-        echo -e "${RED}Destination IP and port are required.${ENDCOLOR}"
+
+    if [ -z "$DEST_IP" ]; then
+        echo -e "${RED}Destination IP is required.${ENDCOLOR}"
         return 1
     fi
-    
-    nft add table inet raw 2>/dev/null
-    nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; } 2>/dev/null
-    nft add chain inet raw postrouting { type filter hook postrouting priority 100 \; } 2>/dev/null
-    
-    if [ "$SRC_PORT" == "any" ] && [ -z "$DEST_PORT" ]; then
-        nft add rule inet raw prerouting ip saddr "$SRC_IP" dnat to "$DEST_IP"
-        nft add rule inet raw postrouting ip daddr "$DEST_IP" masquerade
-        echo -e "${GREEN}All traffic forwarded to $DEST_IP successfully! ${ENDCOLOR}"
-    elif [ -n "$SRC_PORT" ] && [ -n "$DEST_PORT" ]; then
-        nft add rule inet raw prerouting ip saddr "$SRC_IP" tcp dport "$SRC_PORT" dnat to "$DEST_IP":"$DEST_PORT"
-        nft add rule inet raw postrouting ip daddr "$DEST_IP" tcp dport "$DEST_PORT" masquerade
-        echo -e "${GREEN}Traffic forwarded to $DEST_IP:$DEST_PORT successfully! ${ENDCOLOR}"
 
+    nft add table ip nat 2>/dev/null
+
+    nft list chain ip nat prerouting >/dev/null 2>&1 || nft add chain ip nat prerouting { type nat hook prerouting priority -100 \; }
+    nft list chain ip nat postrouting >/dev/null 2>&1 || nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
+
+    if [ -z "$SRC_PORT" ] && [ -z "$DEST_PORT" ]; then
+        nft add rule ip nat prerouting dnat to "$DEST_IP"
+        nft add rule ip nat postrouting ip daddr "$DEST_IP" masquerade
+        echo -e "${GREEN}All traffic forwarded to $DEST_IP successfully!${ENDCOLOR}"
+    elif [ -z "$SRC_PORT" ]; then
+        nft add rule ip nat prerouting tcp dport "$DEST_PORT" dnat to "$DEST_IP":"$DEST_PORT"
+        nft add rule ip nat postrouting ip daddr "$DEST_IP" masquerade
+        echo -e "${GREEN}All traffic to destination port $DEST_PORT forwarded to $DEST_IP:$DEST_PORT successfully!${ENDCOLOR}"
+    elif [ -z "$DEST_PORT" ]; then
+        nft add rule ip nat prerouting tcp dport "$SRC_PORT" dnat to "$DEST_IP"
+        nft add rule ip nat postrouting ip daddr "$DEST_IP" masquerade
+        echo -e "${GREEN}Traffic from source port $SRC_PORT forwarded to $DEST_IP successfully!${ENDCOLOR}"
     else
-        echo -e "${RED}Please specify both source and destination ports or leave both blank to forward all traffic.${ENDCOLOR}"
+        nft add rule ip nat prerouting tcp dport "$SRC_PORT" dnat to "$DEST_IP":"$DEST_PORT"
+        nft add rule ip nat postrouting ip daddr "$DEST_IP" masquerade
+        echo -e "${GREEN}Traffic forwarded to $DEST_IP:$DEST_PORT from source port $SRC_PORT successfully!${ENDCOLOR}"
     fi
 }
-
 
 
 while true; do
