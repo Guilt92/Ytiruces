@@ -4,7 +4,7 @@ This is a Bash script for managing `nftables` rules on an Ubuntu-based server. I
 
 ## Features
 
-- **Manage nftables: Add, delete, flush, and display nftables rules.
+-**Manage nftables: Add, delete, flush, and display nftables rules.
 - **Whitelist and Block IPs: Option to whitelist specific IP addresses (typically used for SSH access).
 - **DDoS Protection: Implements basic DDoS protection by limiting incoming traffic.
 - **Save and Load Rules: Save the current nftables configuration and load it later.
