@@ -4,56 +4,41 @@ This is a Bash script for managing `nftables` rules on an Ubuntu-based server. I
 
 ## Features
 
-- **Manage nftables**: Add, delete, flush, and display `nftables` rules.
-- **Whitelist IP**: Allows the user to whitelist an IP address (typically the one used to SSH into the server).
-- **DDoS Protection**: Provides an option to set up basic DDoS protection by rate-limiting incoming traffic.
-- **Save and Load Rules**: Enables saving the current `nftables` configuration and loading it at a later time.
-- **Service Management**: Starts, stops, and restarts the `nftables` service.
-- **Add and Block Ports**: Allows users to add or block specific ports.
+- **Manage nftables: Add, delete, flush, and display nftables rules.
+- **Whitelist and Block IPs: Option to whitelist specific IP addresses (typically used for SSH access).
+- **DDoS Protection: Implements basic DDoS protection by limiting incoming traffic.
+- **Save and Load Rules: Save the current nftables configuration and load it later.
+- **Service Management: Start, stop, and restart the nftables service.
+- **Add and Block Ports: Add or block specific ports.
+- **Port Forwarding: Set up port forwarding for specific IP addresses or ports.
+- **Advanced Options: Additional customization options for firewall settings and configuration.
 
 
 ## Installation
 
-1. Clone this repository to your server:
-
-    ```bash
-    git clone https://github.com/Niihil/Ytiruces.git
-    ```
-
-2. Make the script executable:
-
-    ```bash
-    chmod +x Ytiruces.sh
-    ```
-
-3. Run the script:
-
-    ```bash
-    sudo ./Ytiruces.sh
-    ```
-
-Alternatively, you can use this one-liner to directly download and run the script:
-
 ```
-sudo bash -c "$(curl -sL https://raw.githubusercontent.com/Niihil/Ytiruces/main/Ytiruces.sh)"
+sudo bash <(curl -sL https://raw.githubusercontent.com/Niihil/Ytiruces/main/Ytiruces)
 ```
 
 ## Usage
 
 When the script runs, it will present an interactive menu with the following options:
 
-1. **Wizard Nftable**: Initializes basic `nftables` tables and chains.
-2. **Add With List Ip**: Adds the current IP address to the whitelist.
-3. **Display Rules**: Displays the current `nftables` ruleset.
-4. **Add Rule**: Adds a custom rule to `nftables`.
-5. **Delete Rule**: Deletes a specified rule from `nftables`.
-6. **Flush Rules**: Clears all `nftables` rules but preserves SSH connection.
-7. **Save Rules**: Saves the current `nftables` configuration to a file and enables automatic loading on reboot.
-8. **DDOS Protection**: Sets up basic DDoS protection by limiting traffic.
-9. **Add Port Number**: Adds an input/output rule for a specified port.
-10. **Load Rules**: Loads a set of `nftables` rules from a file.
-11. **Block Port**: Blocks a specified port.
-12. **Exit**: Exits the script.
+1. **Wizard Nftable: Initializes basic `nftables` tables and chains.
+2. **WithList IP: Adds the current IP address to the whitelist (for SSH access or trusted addresses).
+3. **Block IP: Blocks a specific IP address from accessing the server.3. **Display Rules: Displays the current `nftables` ruleset.
+4. **Display Rules: Displays the current rules in the nftables configuration.
+5. **Add Rule: Adds a custom rule to `nftables`.
+6. **Delete Rule: Deletes a specified rule from `nftables`.
+7. **Flush Rules: Clears all `nftables` rules while preserving SSH connections.
+8. **Save Rules: Saves the current `nftables` configuration to a file and enables automatic loading on reboot.
+9. **DDoS Protection: Implements basic DDoS protection by limiting traffic.
+10. **Open Port: Opens a specific port for inbound or outbound traffic.
+11. **Block Port: Blocks a specified port.
+12. **Load Conf File: Loads a configuration file to apply pre-defined nftables rules.
+13. **Forwarding: Configures port forwarding to redirect traffic from one port to another or to a specific IP.
+14. **Exit: Exits the script.
+
 
 ### Example of Commands in the Script:
 
@@ -69,16 +54,12 @@ When the script runs, it will present an interactive menu with the following opt
   2. Enter your current IP address.
 
 - To enable DDoS protection:
-  1. Select option **8** (DDOS Protection).
+  1. Select option **9** (DDOS Protection).
 
 ## Notes
 
 - **Root Privileges**: The script requires root privileges to modify the `nftables` configuration and restart the `nftables` service.
-- **Ubuntu-Only**: The script is designed to run on Ubuntu-based systems (e.g., Ubuntu, Debian). It will exit if another OS is detected.
+- **Debian-Only**: The script is designed to run on Ubuntu-based systems (e.g., Ubuntu, Debian). It will exit if another OS is detected.
 
 
-Feel free to fork this repository, make improvements, or fix bugs. Pull requests are welcome!
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
