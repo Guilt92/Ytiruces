@@ -391,10 +391,12 @@ forwarding() {
     nft list chain ip nat postrouting >/dev/null 2>&1 || nft add chain ip nat postrouting { type nat hook postrouting priority 100 \; }
 
     echo -e "${BLUE} Sysctl Config .... ${ENDCOLOR}"
-
+    sleep 1 
+    clear 
     sysctl -w net.ipv4.ip_forward=1 
     sysctl -p
-
+    sleep 1 
+    clear 
     if [ -z "$SRC_PORT" ] && [ -z "$DEST_PORT" ]; then
         nft add rule ip nat prerouting dnat to "$DEST_IP"
         nft add rule ip nat postrouting ip daddr "$DEST_IP" masquerade
