@@ -2,7 +2,6 @@
 
 # Author:   OuTiS
 
-
 ORANGE=$(echo -ne '\e[38;5;214m')  
 BLUE=$(echo -ne '\e[94m')           
 RED=$(echo -ne '\e[31m')            
@@ -149,14 +148,11 @@ add_ip_withlist(){
 
 add_ip_block_list(){
     echo -e "${YELLOW}Please enter the IP address you want to block.${ENDCOLOR}"
-
     read -p "$(echo -e "${BLUE}Enter the IP address to block: ${ENDCOLOR}")" USER_IP
-
     if [[ -z "$USER_IP" ]]; then
         echo -e "${RED} No Ip Entered. EXiting ....  ${ENDCOLOR}"
         exit 1
     fi
-
     if [[ ! $USER_IP =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
         echo -e "${RED}The entered IP address is not valid. Please try again.${ENDCOLOR}"
         exit 1
@@ -169,7 +165,6 @@ add_ip_block_list(){
             fi
         done
     fi
-
     echo -e "${YELLOW}You entered IP: ${GREEN}$USER_IP${ENDCOLOR}"
     echo -e "${RED}Blocking this IP address...${ENDCOLOR}"
     nft list tables | grep -q 'inet filter' || nft add table inet filter 2>/dev/null 
@@ -264,8 +259,6 @@ add_port_withlist() {
   echo -e "${GREEN}Port $PORT has been successfully added to the whitelist.${ENDCOLOR}"
 
 }
-
-
 block_port() {
   read -p "${BLUE}Enter port to block: ${ENDCOLOR}" PORT
 
@@ -277,13 +270,9 @@ block_port() {
    nft insert rule inet filter output position 0 tcp dport $PORT  drop
 
    echo -e "${GREEN}Port $PORT has been successfully blocked.${ENDCOLOR}"
-
 }
-
-
 delete_rule() {
     echo ""
-
     display_rules
     echo ""
     read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
@@ -305,9 +294,6 @@ delete_rule() {
 
     echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
-
-
-
 flush_all_rules() {
   BACKUP_FILE="/etc/nftables.conf.backup"
   nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
@@ -336,7 +322,6 @@ flush_all_rules() {
   fi
 }
 
-
 load_conf_nftable() {
     read -p "${BLUE}Enter file name to load rules from: ${ENDCOLOR}" filename
     if [[ -f $filename ]]; then
@@ -346,8 +331,6 @@ load_conf_nftable() {
         echo -e "${RED}File not found!${ENDCOLOR}"
     fi
 }
-
-
 ddos(){
 
     nft list table inet raw >/dev/null 2>&1 || nft add table inet raw 2>/dev/null
@@ -415,7 +398,6 @@ forwarding() {
         echo -e "${GREEN}Traffic forwarded to $DEST_IP:$DEST_PORT from source port $SRC_PORT successfully!${ENDCOLOR}"
     fi
 }
-
 
 while true; do
     
