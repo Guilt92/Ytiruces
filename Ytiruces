@@ -339,10 +339,11 @@ ddos(){
     nft list chain inet raw input >/dev/null 2>&1 || nft add chain inet raw input { type filter hook input priority -500 \; } 2>/dev/null
     nft list chain inet raw output >/dev/null 2>&1 || nft add chain inet raw output { type filter hook output priority -500 \; } 2>/dev/null
     nft insert rule inet raw prerouting ip saddr @whitelist_set accept 2>/dev/null 
-    nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null
+    nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null   
     nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null
     nft add rule inet raw prerouting ip protocol icmp limit rate over 30/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null
     nft add rule inet raw prerouting ip protocol tcp ct state new limit rate over 50/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null
+    #nft add rule inet raw prerouting tcp dport { 80, 443 } limit rate over 100/second ip saddr != @whitelist_set add @blacklist { ip saddr }
     nft add rule inet raw prerouting ip saddr @blacklist drop 2>/dev/null
     nft list ruleset > /etc/nftables.conf
     }   
