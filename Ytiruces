@@ -224,23 +224,42 @@ nftwizard(){
   echo -e "${GREEN}All chains & table successfully created!${ENDCOLOR}"
 }
 
+add_rule() {
+    nftwizard
+    read -p "${BLUE}Enter Chain (INPUT / OUTPUT): ${ENDCOLOR}" chain
+    if [[ ! "$chain" =~ ^(INPUT|OUTPUT)$ ]]; then
+        echo -e "${RED}Invalid chain! Use INPUT or OUTPUT.${ENDCOLOR}"
+        return
+    fi
 
-add_rule(){
-    read -p "${BLUE}Enter Chain (INPUT / OUTPUT / FORWARD): ${ENDCOLOR}" chain
-    read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR} " protocol
-    read -p "${BLUE}Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " source
-    read -p "${BLUE}Enter destination IP (or 0.0.0.0/0 for any): ${ENDCOLOR} " destination
-    read -p "${BLUE}Enter destination port (or leave empty for none): ${ENDCOLOR} " port
-    read -p "${BLUE}Enter action (ACCEPT/DROP): ${ENDCOLOR} " action
+    read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR}" protocol
+    if [[ ! "$protocol" =~ ^(tcp|udp|icmp)$ ]]; then
+        echo -e "${RED}Invalid protocol! Use tcp, udp, or icmp.${ENDCOLOR}"
+        return
+    fi
+
+    read -p "${BLUE}Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR}" source
+    read -p "${BLUE}Enter destination port (or leave empty for none): ${ENDCOLOR}" port
+    read -p "${BLUE}Enter action (ACCEPT/DROP): ${ENDCOLOR}" action
+    if [[ ! "$action" =~ ^(ACCEPT|DROP)$ ]]; then
+        echo -e "${RED}Invalid action! Use ACCEPT or DROP.${ENDCOLOR}"
+        return
+    fi
+
+    destination=$(hostname -I | awk '{print $1}')
 
     if [ -z "$port" ]; then
-         nft add rule ip filter $chain ip saddr $source daddr $destination $protocol $action 
+        nft add rule ip filter "$chain" ip saddr "$source" ip daddr "$destination" "$protocol" "$action"
     else
-         nft add rule ip filter $chain ip saddr $source daddr $destination $protocol dport $port $action
+        nft add rule ip filter "$chain" ip saddr "$source" ip daddr "$destination" "$protocol" dport "$port" "$action"
     fi
-    echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
-}
 
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
+    else
+        echo -e "${RED}Failed to add the rule. Please check your inputs.${ENDCOLOR}"
+    fi
+}
 
 add_port_withlist() {
   read -p "${BLUE}Enter port: ${ENDCOLOR}" PORT
