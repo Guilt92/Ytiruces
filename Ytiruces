@@ -377,9 +377,9 @@ ddos(){
 
     nft list table inet raw >/dev/null 2>&1 || nft add table inet raw 2>/dev/null
     nft add set inet raw blacklist { type ipv4_addr\; flags timeout\; timeout 12h\; } 2>/dev/null
-    nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -500 \; } 2>/dev/null
-    nft list chain inet raw input >/dev/null 2>&1 || nft add chain inet raw input { type filter hook input priority -500 \; } 2>/dev/null
-    nft list chain inet raw output >/dev/null 2>&1 || nft add chain inet raw output { type filter hook output priority -500 \; } 2>/dev/null
+    nft list chain inet raw prerouting >/dev/null 2>&1 || nft add chain inet raw prerouting { type filter hook prerouting priority -1000 \; } 2>/dev/null
+    nft list chain inet raw input >/dev/null 2>&1 || nft add chain inet raw input { type filter hook input priority -1000 \; } 2>/dev/null
+    nft list chain inet raw output >/dev/null 2>&1 || nft add chain inet raw output { type filter hook output priority -1000 \; } 2>/dev/null
     nft insert rule inet raw prerouting ip saddr @whitelist_set accept 2>/dev/null 
     nft add rule inet raw prerouting ip protocol tcp tcp flags syn limit rate over 30/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null   
     nft add rule inet raw prerouting ip protocol udp limit rate over 30/minute ip saddr != @whitelist_set add @blacklist { ip saddr } 2>/dev/null
