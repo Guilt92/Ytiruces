@@ -204,6 +204,12 @@ fi
 
 nftwizard(){
     backup_conf_nft
+    if [ -f /etc/nftables.conf ]; then
+        echo -e "${RED} Conf File nftables Exists."
+    else 
+        touch /etc/nftables.conf 
+    fi 
+    
     nft list tables | grep -q 'inet filter' || nft add table inet filter 2>/dev/null
     nft add chain inet filter input { type filter hook input priority 0 \; } 2>/dev/null
     nft add chain inet filter output { type filter hook output priority 0 \; } 2>/dev/null
@@ -227,8 +233,8 @@ nftwizard(){
 add_rule() {
     nftwizard
     read -p "${BLUE}Enter Chain (INPUT / OUTPUT): ${ENDCOLOR}" chain
-    if [[ ! "$chain" =~ ^(INPUT|OUTPUT)$ ]]; then
-        echo -e "${RED}Invalid chain! Use INPUT or OUTPUT.${ENDCOLOR}"
+    if [[ ! "$chain" =~ ^(input|output)$ ]]; then
+        echo -e "${RED}Invalid chain! Use input or output.${ENDCOLOR}"
         return
     fi
 
@@ -259,6 +265,7 @@ add_rule() {
     else
         echo -e "${RED}Failed to add the rule. Please check your inputs.${ENDCOLOR}"
     fi
+
 }
 
 add_port_withlist() {
