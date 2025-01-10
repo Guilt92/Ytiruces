@@ -197,7 +197,7 @@ display_rules(){
     clear 
     echo -e "${RED}\e[5mDisplay Rules. Clear Page After 5 Time...${ENDCOLOR}"
     echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
-     nft list ruleset
+     nft -a list ruleset
      sleep 5 
 }
 
@@ -219,12 +219,12 @@ fi
 }
 
 nftwizard(){
-    backup_conf_nft
-    if [ -f /etc/nftables.conf ]; then
-        echo -e "${RED} Conf File nftables Exists."
-    else 
-        touch /etc/nftables.conf 
-    fi 
+    #backup_conf_nft
+    #if [ -f /etc/nftables.conf ]; then
+     #   echo -e "${RED} Conf File nftables Exists."
+    #else 
+     #   touch /etc/nftables.conf 
+    #fi 
     
     nft list tables | grep -q 'inet filter' || nft add table inet filter 2>/dev/null
     nft add chain inet filter input { type filter hook input priority 0 \; } 2>/dev/null
@@ -246,42 +246,48 @@ nftwizard(){
   echo -e "${GREEN}All chains & table successfully created!${ENDCOLOR}"
 }
 
-add_rule() {
-    nftwizard
-    read -p "${BLUE}Enter Chain (INPUT / OUTPUT): ${ENDCOLOR}" chain
-    if [[ ! "$chain" =~ ^(input|output)$ ]]; then
-        echo -e "${RED}Invalid chain! Use input or output.${ENDCOLOR}"
-        return
-    fi
 
-    read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR}" protocol
-    if [[ ! "$protocol" =~ ^(tcp|udp|icmp)$ ]]; then
-        echo -e "${RED}Invalid protocol! Use tcp, udp, or icmp.${ENDCOLOR}"
-        return
-    fi
+add_rule() {                                                                                                                                             
+  nftwizard
+  read -p "${BLUE}Enter Chain (INPUT / OUTPUT): ${ENDCOLOR}" chain                                                                                     
+  if [[ ! "$chain" =~ ^(input|output)$ ]]; then                                                                                                         
+    echo -e "${RED}Invalid chain! Use input or output.${ENDCOLOR}"                                                                                  
+    return                                                                                                                                           
+  fi                                                                                                                                                   
 
-    read -p "${BLUE}Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR}" source
-    read -p "${BLUE}Enter destination port (or leave empty for none): ${ENDCOLOR}" port
-    read -p "${BLUE}Enter action (ACCEPT/DROP): ${ENDCOLOR}" action
-    if [[ ! "$action" =~ ^(ACCEPT|DROP)$ ]]; then
-        echo -e "${RED}Invalid action! Use ACCEPT or DROP.${ENDCOLOR}"
-        return
-    fi
+  read -p "${BLUE}Enter protocol (tcp/udp/icmp): ${ENDCOLOR}" protocol                                                                                  
+  if [[ ! "$protocol" =~ ^(tcp|udp|icmp)$ ]]; then                                                                                                     
+    echo -e "${RED}Invalid protocol! Use tcp, udp, or icmp.${ENDCOLOR}"                                                                              
+    return                                                                                                                                           
+  fi                                                                                                                                                   
 
-    destination=$(hostname -I | awk '{print $1}')
+  read -p "${BLUE}Enter source IP (or 0.0.0.0/0 for any): ${ENDCOLOR}" source                                                                          
+  read -p "${BLUE}Enter destination port (or leave empty for none): ${ENDCOLOR}" port                                                                 
+  read -p "${BLUE}Enter action (ACCEPT/DROP): ${ENDCOLOR}" action                                                                                     
+  if [[ ! "$action" =~ ^(accept|drop)$ ]]; then                                                                                                         
+    echo -e "${RED}Invalid action! Use ACCEPT or DROP.${ENDCOLOR}"                                                                                    
+    return                                                                                                                                           
+  fi                                                                                                                                                   
 
+  if [[ "$protocol" == "icmp" ]]; then
     if [ -z "$port" ]; then
-        nft add rule ip filter "$chain" ip saddr "$source" ip daddr "$destination" "$protocol" "$action"
+      nft add rule inet filter "$chain" ip saddr "$source" icmp type echo-request "$action"
     else
-        nft add rule ip filter "$chain" ip saddr "$source" ip daddr "$destination" "$protocol" dport "$port" "$action"
+     nft add rule inet filter "$chain" ip saddr "$source" icmp type echo-request "$action"
     fi
-
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
+  else
+    if [ -z "$port" ]; then
+      nft add rule inet filter "$chain" ip saddr "$source" "$protocol" "$action"
     else
-        echo -e "${RED}Failed to add the rule. Please check your inputs.${ENDCOLOR}"
+      nft add rule inet filter "$chain" ip saddr "$source" "$protocol" dport "$port" "$action"
     fi
+  fi
 
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}Rule added successfully!${ENDCOLOR}"
+  else
+    echo -e "${RED}Failed to add the rule. Please check your inputs.${ENDCOLOR}"
+  fi
 }
 
 add_port_withlist() {
@@ -313,29 +319,23 @@ block_port() {
 
    echo -e "${GREEN}Port $PORT has been successfully blocked.${ENDCOLOR}"
 }
+
 delete_rule() {
-    echo ""
-    display_rules
-    echo ""
-    read -p "${BLUE}Enter chain (input/output/forward): ${ENDCOLOR}" chain
+    echo -e "${BLUE}Displaying current rules...${ENDCOLOR}"
+    display_rules 
 
-    if [[ ! "$chain" =~ ^(input|output|forward)$ ]]; then
-        echo -e "${RED}Invalid chain. Please choose 'input', 'output', or 'forward'.${ENDCOLOR}"
-        return
+    echo -e "${RED}Note: Please note the handle numbers of the rules you want to delete.${ENDCOLOR}"
+    read -p "${BLUE}Enter the handle number of the rule to delete: ${ENDCOLOR}" handle
+    
+    nft delete rule inet filter input handle "$handle"
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}Rule with handle $handle deleted successfully!${ENDCOLOR}"
+    else
+        echo -e "${RED}Failed to delete rule. Please check the handle number and try again.${ENDCOLOR}"
     fi
-
-    echo -e "${YELLOW}Displaying current rules in the $chain chain...${ENDCOLOR}"
-    nft list chain inet filter $chain 2>/dev/null 
-
-    read -p "${BLUE}Enter rule number to delete: ${ENDCOLOR}" rule_number
-
-    nft delete rule inet filter $chain handle $rule_number || {
-        echo -e "${RED}Failed to delete rule. Please make sure the rule number is correct.${ENDCOLOR}"
-        return
-    }
-
-    echo -e "${GREEN}Rule deleted successfully!${ENDCOLOR}"
 }
+
 flush_all_rules() {
   BACKUP_FILE="/etc/nftables.conf.backup"
   nft list ruleset > $BACKUP_FILE || { echo -e "${RED}Failed to create backup.${ENDCOLOR}"; exit 1; }
