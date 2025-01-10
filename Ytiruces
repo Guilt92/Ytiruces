@@ -208,10 +208,12 @@ if [ -f "$config_file" ]; then
     echo -e "${GREEN}Config file exists: $config_file${ENDCOLOR}"
     
     timestamp=$(date +%Y%m%d%H%M%S)
-    backup_file="/etc/nftables.conf-backup-$timestamp"
-    
+    mkdir -p /var/backups-nftables
+    backup_file="/var/backups-nftables/nftables.conf-backup-$timestamp"
     cp "$config_file" "$backup_file"
     echo -e "${GREEN}Backup created at: $backup_file${ENDCOLOR}"
+    sleep 2 
+    exit
 else
     echo -e "${RED}Config file does not exist: $config_file${ENDCOLOR}"
 fi
@@ -449,7 +451,7 @@ while true; do
     echo " "
     echo -e "${BLUE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
     echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}"
-    echo -e "              ${CYAN} https://github.com/Niihil/Ytiruces/  ${ENDCOLOR}"
+    echo -e "                   ${CYAN} https://github.com/Niihil  ${ENDCOLOR}"
     echo -e "${BLUE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
     echo " "
     echo -e  "${RED}============================ ${ENDCOLOR}"
