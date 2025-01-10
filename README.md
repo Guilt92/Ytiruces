@@ -17,7 +17,7 @@ This is a Bash script for managing `nftables` rules on an Ubuntu-based server. I
 ## Installation
 
 ```
-sudo bash <(curl -sL https://raw.githubusercontent.com/Niihil/Ytiruces/main/Ytiruces)
+curl -sLO https://raw.githubusercontent.com/Niihil/Ytiruces/main/Ytiruces  && sudo ./Ytiruces
 ```
 
 ## Usage
