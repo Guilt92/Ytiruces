@@ -451,7 +451,7 @@ while true; do
     echo " "
     echo -e "${BLUE}\e[5m╔═══════════════════════════════════════════════════════════╗${ENDCOLOR}"
     echo -e "                    ${GREEN} 🔥 NFTables Manager 🔥   ${ENDCOLOR}"
-    echo -e "                   ${CYAN} https://github.com/Niihil  ${ENDCOLOR}"
+    echo -e "                   ${CYAN} https://github.com/Guilt92  ${ENDCOLOR}"
     echo -e "${BLUE}\e[5m╚═══════════════════════════════════════════════════════════╝${ENDCOLOR}"
     echo " "
     echo -e  "${RED}============================ ${ENDCOLOR}"
