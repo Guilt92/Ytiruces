@@ -29,20 +29,19 @@ detect_distribution() {
     if [ -f /etc/os-release ]; then
         source /etc/os-release
         if [[ "${ID}" = "ubuntu" ]]; then
-            echo "${BLUE}Ok OS. Installing...${ENDCOLOR}"
+            echo -e "${BLUE}Ok OS. Installing...${ENDCOLOR}"
             return 0
         fi
-        echo "${RED}Unsupported OS. Please install Ubuntu :)${ENDCOLOR}"
+        echo -e "${RED}Unsupported OS. Please install Ubuntu :)${ENDCOLOR}"
         exit 255
     fi
-    echo "${RED}Failed to detect OS version file /etc/os-release.${ENDCOLOR}"
+    echo -e "${RED}Failed to detect OS version file /etc/os-release.${ENDCOLOR}"
     exit 1
 }
 clear 
 detect_distribution
 sleep 2;
 clear
-
 
 service_nftables() {
     echo -e "${YELLOW}Checking status of nftables service...${ENDCOLOR}"
@@ -196,7 +195,7 @@ fi
 display_rules(){
     clear 
     echo -e "${RED}\e[5mDisplay Rules. Clear Page After 5 Time...${ENDCOLOR}"
-    echo "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
+    echo -e "${GREEN}Current nftables Rules: ${ENDCOLOR}" 
      nft -a list ruleset
      sleep 5 
 }
